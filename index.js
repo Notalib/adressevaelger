@@ -1,5 +1,5 @@
 // Legacy DOM manipulation
-import { adressevaelger } from "./src/legacy.js";
+import { adressevaelger, AdresseSearchUI } from "./src/legacy.js";
 
 // Web component
 import { AdresseSearchInput } from "./src/web-component.js";
@@ -11,4 +11,9 @@ import { AdresseSearchAPI } from "./src/api.js";
 export default adressevaelger;
 
 // Export the imports
-export { adressevaelger, AdresseSearchInput, AdresseSearchAPI };
+export {
+  adressevaelger,
+  AdresseSearchUI,
+  AdresseSearchInput,
+  AdresseSearchAPI,
+};
