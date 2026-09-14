@@ -64,6 +64,8 @@ export class AdresseSearchUI {
   listId = nextListId();
   /** Index of the option the arrow keys are on, or -1 for the text itself. */
   activeIndex = -1;
+  /** Cancels the search that is in flight, if there is one. */
+  searchController;
 
   constructor(element, options) {
     this.options = options;
@@ -119,6 +121,7 @@ export class AdresseSearchUI {
    */
   destroy() {
     this.abortController.abort();
+    this.cancelSearch();
     clearTimeout(this.debounceTimer);
     this.debounceTimer = undefined;
     // Before the list goes: the input is the caller's, and it would be left
@@ -130,6 +133,7 @@ export class AdresseSearchUI {
 
   inputHandler(event) {
     if (event.target.value === "") {
+      this.cancelSearch();
       return;
     }
     if (this.debounceTimer) {
@@ -140,15 +144,45 @@ export class AdresseSearchUI {
     }, 500);
   }
 
+  /**
+   * Abandon the search that is in flight, if there is one. Nothing it returns
+   * will be rendered, and the request itself is cancelled rather than left to
+   * occupy a connection until the gateway gives up on it.
+   */
+  cancelSearch() {
+    this.searchController?.abort();
+    this.searchController = undefined;
+  }
+
+  /** Supersede any search in flight and take the token for the new one. */
+  startSearch() {
+    this.cancelSearch();
+    this.searchController = new AbortController();
+    return this.searchController.signal;
+  }
+
   async refreshList(queryText) {
+    const signal = this.startSearch();
     try {
       const data = await this.api.search(
         this.searchType,
         queryText,
         this.options,
+        { signal },
       );
+      // A response can arrive after it stopped being the one we wanted: the
+      // user typed another character, or picked an address. The abort covers
+      // the request; this covers the moment between it resolving and getting
+      // here.
+      if (signal.aborted) {
+        return;
+      }
       this.renderDOMList(this.listElement, data);
     } catch (err) {
+      // Our own cancellation is not a failure to report to the caller.
+      if (signal.aborted) {
+        return;
+      }
       this.errorHandler(
         new Error(`Failed to load search items: ${err.message}`),
       );
@@ -320,6 +354,10 @@ export class AdresseSearchUI {
   }
 
   selectProcessor(item) {
+    // Whatever is in flight was for what the user typed, not for what they
+    // have just picked: without this, its results reopen the list over the
+    // chosen address a moment later.
+    this.cancelSearch();
     if (
       item.type === "vejnavn" ||
       item.type === "navngivenvejpostnummer" ||
