@@ -1,0 +1,317 @@
+{
+  "comment": "Captured from the live API by bin/capture-fixtures.js. The GUI tests serve these instead of calling it. Re-run that script to refresh.",
+  "capturedAt": "2026-09-14",
+  "searches": {
+    "Årh": {
+      "status": "ok",
+      "beskrivelse": "",
+      "fund": [
+        {
+          "type": "vejnavn",
+          "titel": "Århus Landevej",
+          "vejNavn": "Århus Landevej"
+        },
+        {
+          "type": "vejnavn",
+          "titel": "Århus Plads",
+          "vejNavn": "Århus Plads"
+        },
+        {
+          "type": "vejnavn",
+          "titel": "Århusgade",
+          "vejNavn": "Århusgade"
+        },
+        {
+          "type": "vejnavn",
+          "titel": "Århusvej",
+          "vejNavn": "Århusvej"
+        },
+        {
+          "type": "vejnavn",
+          "titel": "Aagærdet",
+          "vejNavn": "Aagærdet"
+        },
+        {
+          "type": "vejnavn",
+          "titel": "Aarestrupsvej",
+          "vejNavn": "Aarestrupsvej"
+        },
+        {
+          "type": "vejnavn",
+          "titel": "Aarestrupvej",
+          "vejNavn": "Aarestrupvej"
+        },
+        {
+          "type": "vejnavn",
+          "titel": "Aarhusvej",
+          "vejNavn": "Aarhusvej"
+        },
+        {
+          "type": "vejnavn",
+          "titel": "Aarrildsøvej",
+          "vejNavn": "Aarrildsøvej"
+        }
+      ]
+    },
+    "Århusgade": {
+      "status": "ok",
+      "beskrivelse": "",
+      "fund": [
+        {
+          "id": "387c8db6-bb43-4613-af5d-c7bb06b858ef",
+          "type": "navngivenvejpostnummer",
+          "titel": "Århusgade 2100 København Ø",
+          "vejnavn": "Århusgade",
+          "postnr": "2100",
+          "postdistrikt": "København Ø",
+          "antal_husnumre": 81
+        },
+        {
+          "id": "24d3d297-624d-40ad-9d8c-de543d83a0e3",
+          "type": "navngivenvejpostnummer",
+          "titel": "Århusgade 2150 Nordhavn",
+          "vejnavn": "Århusgade",
+          "postnr": "2150",
+          "postdistrikt": "Nordhavn",
+          "antal_husnumre": 62
+        },
+        {
+          "id": "9b1c7d88-0e39-49bd-8b74-e4f72c2da890",
+          "type": "navngivenvejpostnummer",
+          "titel": "Århusgade 9900 Frederikshavn",
+          "vejnavn": "Århusgade",
+          "postnr": "9900",
+          "postdistrikt": "Frederikshavn",
+          "antal_husnumre": 44
+        }
+      ]
+    },
+    "Århusgade 2100 København Ø": {
+      "status": "ok",
+      "beskrivelse": "",
+      "fund": [
+        {
+          "type": "husnummer",
+          "id": "0a3f507b-37d7-32b8-e044-0003ba298018",
+          "titel": "Århusgade 1, 2100 København Ø",
+          "vejnavn": "Århusgade",
+          "husnummer": "1"
+        },
+        {
+          "type": "husnummer",
+          "id": "0a3f507b-37d8-32b8-e044-0003ba298018",
+          "titel": "Århusgade 2, 2100 København Ø",
+          "vejnavn": "Århusgade",
+          "husnummer": "2"
+        },
+        {
+          "type": "husnummer",
+          "id": "0a3f507b-37d9-32b8-e044-0003ba298018",
+          "titel": "Århusgade 3, 2100 København Ø",
+          "vejnavn": "Århusgade",
+          "husnummer": "3"
+        },
+        {
+          "type": "husnummer",
+          "id": "0a3f507b-37da-32b8-e044-0003ba298018",
+          "titel": "Århusgade 4, 2100 København Ø",
+          "vejnavn": "Århusgade",
+          "husnummer": "4"
+        },
+        {
+          "type": "husnummer",
+          "id": "0a3f507b-37db-32b8-e044-0003ba298018",
+          "titel": "Århusgade 6, 2100 København Ø",
+          "vejnavn": "Århusgade",
+          "husnummer": "6"
+        },
+        {
+          "type": "husnummer",
+          "id": "0a3f507b-37dc-32b8-e044-0003ba298018",
+          "titel": "Århusgade 8, 2100 København Ø",
+          "vejnavn": "Århusgade",
+          "husnummer": "8"
+        },
+        {
+          "type": "husnummer",
+          "id": "0a3f507b-37dd-32b8-e044-0003ba298018",
+          "titel": "Århusgade 10, 2100 København Ø",
+          "vejnavn": "Århusgade",
+          "husnummer": "10"
+        },
+        {
+          "type": "husnummer",
+          "id": "0a3f507b-37de-32b8-e044-0003ba298018",
+          "titel": "Århusgade 11, 2100 København Ø",
+          "vejnavn": "Århusgade",
+          "husnummer": "11"
+        },
+        {
+          "type": "husnummer",
+          "id": "0a3f507b-37df-32b8-e044-0003ba298018",
+          "titel": "Århusgade 12, 2100 København Ø",
+          "vejnavn": "Århusgade",
+          "husnummer": "12"
+        }
+      ]
+    },
+    "Århusgade 1, 2100 København Ø": {
+      "status": "ok",
+      "beskrivelse": "",
+      "fund": [
+        {
+          "type": "adresse",
+          "id": "fd30278a-9eb8-42bf-bd82-91308706980d",
+          "titel": "Århusgade 1, 2100 København Ø",
+          "husnummerId": "0a3f507b-37d7-32b8-e044-0003ba298018"
+        },
+        {
+          "type": "adresse",
+          "id": "0a3f50a1-fc85-32b8-e044-0003ba298018",
+          "titel": "Århusgade 1, st. tv, 2100 København Ø",
+          "husnummerId": "0a3f507b-37d7-32b8-e044-0003ba298018"
+        },
+        {
+          "type": "adresse",
+          "id": "0a3f50a1-fc84-32b8-e044-0003ba298018",
+          "titel": "Århusgade 1, st. th, 2100 København Ø",
+          "husnummerId": "0a3f507b-37d7-32b8-e044-0003ba298018"
+        },
+        {
+          "type": "adresse",
+          "id": "0a3f50a1-fc87-32b8-e044-0003ba298018",
+          "titel": "Århusgade 1, 1. tv, 2100 København Ø",
+          "husnummerId": "0a3f507b-37d7-32b8-e044-0003ba298018"
+        },
+        {
+          "type": "adresse",
+          "id": "0a3f50a1-fc86-32b8-e044-0003ba298018",
+          "titel": "Århusgade 1, 1. th, 2100 København Ø",
+          "husnummerId": "0a3f507b-37d7-32b8-e044-0003ba298018"
+        },
+        {
+          "type": "adresse",
+          "id": "0a3f50a1-fc89-32b8-e044-0003ba298018",
+          "titel": "Århusgade 1, 2. tv, 2100 København Ø",
+          "husnummerId": "0a3f507b-37d7-32b8-e044-0003ba298018"
+        },
+        {
+          "type": "adresse",
+          "id": "0a3f50a1-fc88-32b8-e044-0003ba298018",
+          "titel": "Århusgade 1, 2. th, 2100 København Ø",
+          "husnummerId": "0a3f507b-37d7-32b8-e044-0003ba298018"
+        },
+        {
+          "type": "adresse",
+          "id": "0a3f50a1-fc8b-32b8-e044-0003ba298018",
+          "titel": "Århusgade 1, 3. tv, 2100 København Ø",
+          "husnummerId": "0a3f507b-37d7-32b8-e044-0003ba298018"
+        },
+        {
+          "type": "adresse",
+          "id": "0a3f50a1-fc8a-32b8-e044-0003ba298018",
+          "titel": "Århusgade 1, 3. th, 2100 København Ø",
+          "husnummerId": "0a3f507b-37d7-32b8-e044-0003ba298018"
+        }
+      ]
+    }
+  },
+  "address": {
+    "id": "0a3f50a1-fc85-32b8-e044-0003ba298018",
+    "response": {
+      "status": "ok",
+      "adresse": {
+        "id_lokalid": "0a3f50a1-fc85-32b8-e044-0003ba298018",
+        "adressebetegnelse": "Århusgade 1, st. tv, 2100 København Ø",
+        "etagebetegnelse": "st",
+        "doerbetegnelse": "tv",
+        "status": "3",
+        "virkningfra": "2000-02-05T19:37:44.000Z",
+        "virkningtil": null,
+        "registreringfra": "2018-05-03T16:58:34.000Z",
+        "registreringtil": null,
+        "husnummer": {
+          "id_lokalid": "0a3f507b-37d7-32b8-e044-0003ba298018",
+          "husnummertekst": "1",
+          "adgangsadressebetegnelse": "Århusgade 1, 2100 København Ø",
+          "vejnavn": "Århusgade",
+          "status": "3",
+          "virkningfra": "2026-04-29T08:01:12.40468+00:00",
+          "virkningtil": null,
+          "registreringfra": "2026-04-29T08:01:12.40468+00:00",
+          "registreringtil": null,
+          "adgangspunkt": {
+            "id_lokalid": "0a3f507b-37d7-32b8-e044-0003ba298018",
+            "status": "8",
+            "virkningfra": "2009-11-25T00:07:37+00:00",
+            "virkningtil": null,
+            "registreringfra": "2018-05-03T16:58:34+00:00",
+            "registreringtil": null,
+            "geometri": {
+              "type": "Point",
+              "crs": {
+                "type": "name",
+                "properties": {
+                  "name": "EPSG:25832"
+                }
+              },
+              "coordinates": [
+                724802.02,
+                6179167.92
+              ]
+            },
+            "koordinater": {
+              "x": 724802.02,
+              "y": 6179167.92
+            }
+          },
+          "postnummer": {
+            "id_lokalid": "002115e2-658c-443c-9b65-96abe855cff7",
+            "navn": "København Ø",
+            "postnr": "2100",
+            "status": "3",
+            "virkningfra": "2024-09-17T06:51:01.977117+00:00",
+            "virkningtil": null,
+            "registreringfra": "2024-09-17T06:51:01.977117+00:00",
+            "registreringtil": null
+          },
+          "navngivenvej": {
+            "id_lokalid": "1271a7ad-8f35-4391-b2b7-82906c51daec",
+            "vejnavn": "Århusgade",
+            "virkningfra": "2025-12-02T12:59:07.166346+00:00",
+            "virkningtil": null,
+            "registreringfra": "2025-12-02T12:59:07.166346+00:00",
+            "registreringtil": null
+          },
+          "navngivenvejkommunedel": {
+            "id_lokalid": "5c99b278-4eae-11e8-93fd-066cff24d637",
+            "kommune": "0101",
+            "vejkode": "8696",
+            "navngivenvej": "1271a7ad-8f35-4391-b2b7-82906c51daec",
+            "virkningfra": "2025-12-02T12:59:07.166346+00:00",
+            "virkningtil": null,
+            "registreringfra": "2025-12-02T12:59:07.166346+00:00",
+            "registreringtil": null
+          },
+          "navngivenvejpostnummer": {
+            "id_lokalid": "387c8db6-bb43-4613-af5d-c7bb06b858ef",
+            "virkningfra": "2020-12-18T15:17:19.000774+00:00",
+            "virkningtil": null,
+            "registreringfra": "2020-12-18T15:17:19.000774+00:00",
+            "registreringtil": null
+          },
+          "supplerendebynavn": {
+            "id_lokalid": null,
+            "status": null,
+            "supplerendebynavn": null,
+            "navn": null,
+            "virkningfra": null,
+            "virkningtil": null,
+            "registreringfra": null,
+            "registreringtil": null
+          }
+        }
+      }
+    }
+  }
+}

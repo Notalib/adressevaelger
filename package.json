@@ -17,7 +17,9 @@
   "scripts": {
     "build": "node bin/build.js",
     "dev": "node bin/dev.js",
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:live": "ADRESSEVAELGER_LIVE_API=1 playwright test",
+    "capture-fixtures": "node bin/capture-fixtures.js"
   },
   "keywords": [
     "Adressevælger",
