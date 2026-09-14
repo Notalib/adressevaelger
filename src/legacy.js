@@ -237,6 +237,13 @@ export class AdresseSearchUI {
     if (event.key === "Escape" && this.optionElements().length > 0) {
       event.preventDefault();
     }
+    // Enter belongs to the component while an option is active. DOM focus is
+    // in the text field now, so an enclosing <form> would otherwise submit on
+    // implicit submission — before keyup gets to select anything, and taking
+    // the half-typed text with it.
+    if (event.key === "Enter" && this.activeIndex >= 0) {
+      event.preventDefault();
+    }
   }
 
   /**

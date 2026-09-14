@@ -38,6 +38,8 @@ export class AdresseSearchInput extends HTMLElement {
   debounceTimer;
   /** Index of the option the arrow keys are on, or -1 for the text itself. */
   activeIndex = -1;
+  /** Whether the popover is showing; its contents outlive it being hidden. */
+  listOpen = false;
   inputElement;
   listElement;
   styleElement;
@@ -237,7 +239,10 @@ export class AdresseSearchInput extends HTMLElement {
     // clicks outside it. beforetoggle is where that is noticed, so the
     // combobox state follows a light dismiss as well as our own calls.
     this.listElement.addEventListener("beforetoggle", (event) => {
-      if (event.newState !== "open") {
+      // Hiding a popover leaves its contents in the DOM, so whether the list
+      // is open is not a question the options can answer.
+      this.listOpen = event.newState === "open";
+      if (!this.listOpen) {
         this.setActive(-1);
         this.inputElement?.setAttribute("aria-expanded", "false");
       }
@@ -379,7 +384,13 @@ export class AdresseSearchInput extends HTMLElement {
    * cancelled here while the list is open; inputKeyHandler still closes it.
    */
   keyDownHandler(event) {
-    if (event.key === "Escape" && this.optionElements().length > 0) {
+    if (event.key === "Escape" && this.listOpen) {
+      event.preventDefault();
+    }
+    // Enter belongs to the component while an option is active. DOM focus is
+    // in the text field now, so an enclosing <form> would otherwise submit on
+    // implicit submission — before keyup gets to select anything.
+    if (event.key === "Enter" && this.activeIndex >= 0) {
       event.preventDefault();
     }
   }
