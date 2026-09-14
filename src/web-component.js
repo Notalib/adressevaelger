@@ -24,6 +24,7 @@ export class AdresseSearchInput extends HTMLElement {
   debounceTimer;
   inputElement;
   listElement;
+  styleElement;
   api;
   token;
   style = `
@@ -66,8 +67,15 @@ export class AdresseSearchInput extends HTMLElement {
 
   connectedCallback() {
     this.id = this.elementId;
-    this.attachStyle(this.style);
+    this.attachStyle();
     this.renderList();
+  }
+
+  disconnectedCallback() {
+    clearTimeout(this.debounceTimer);
+    this.debounceTimer = undefined;
+    this.styleElement?.remove();
+    this.styleElement = undefined;
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -149,10 +157,12 @@ export class AdresseSearchInput extends HTMLElement {
   }
 
   attachStyle() {
-    const styleElement = document.createElement("style");
-    styleElement.textContent = this.style;
-    //this.insertBefore(styleElement, this.listElement);
-    document.head.append(styleElement);
+    if (this.styleElement) {
+      return;
+    }
+    this.styleElement = document.createElement("style");
+    this.styleElement.textContent = this.style;
+    document.head.append(this.styleElement);
   }
 
   renderInput() {
@@ -176,6 +186,9 @@ export class AdresseSearchInput extends HTMLElement {
   }
 
   renderList() {
+    if (this.listElement) {
+      this.listElement.remove();
+    }
     this.listElement = document.createElement("ul");
     this.listElement.id = `${this.elementId}-list`;
     this.listElement.popover = "auto";

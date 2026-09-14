@@ -23,7 +23,7 @@ export class AdresseSearchAPI {
       throw new Error("search() requires both endpoint and query parameters.");
     }
     const response = await fetch(
-      `${this.apiUrl}/${endpoint}/soeg?tekst=${query}&token=${this.token}${this.formatParams(options)}`,
+      `${this.apiUrl}/${endpoint}/soeg?token=${encodeURIComponent(this.token)}&tekst=${encodeURIComponent(query)}${this.formatParams(options)}`,
     );
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
@@ -40,7 +40,7 @@ export class AdresseSearchAPI {
       throw new Error("get() requires both endpoint and id parameters.");
     }
     const response = await fetch(
-      `${this.apiUrl}/${endpoint}/${id}?token=${this.token}`,
+      `${this.apiUrl}/${endpoint}/${encodeURIComponent(id)}?token=${encodeURIComponent(this.token)}`,
     );
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -54,20 +54,23 @@ export class AdresseSearchAPI {
 
   formatParams(options) {
     let queryStr = "";
+    const append = (name, value) => {
+      queryStr += `&${name}=${encodeURIComponent(value)}`;
+    };
     if (options.medtagForeloebige) {
-      queryStr += `&medtagForeloebige=true`;
+      append("medtagForeloebige", "true");
     }
     if (options.maksimum) {
-      queryStr += `&maksimum=${options.maksimum}`;
+      append("maksimum", options.maksimum);
     }
     if (options.kommuneKode) {
-      queryStr += `&kommuneKode=${options.kommuneKode}`;
+      append("kommuneKode", options.kommuneKode);
     }
     if (options.vejnavn) {
-      queryStr += `&vejnavn=${options.vejnavn}`;
+      append("vejnavn", options.vejnavn);
     }
     if (options.postnummer) {
-      queryStr += `&postnummer=${options.postnummer}`;
+      append("postnummer", options.postnummer);
     }
     return queryStr;
   }
