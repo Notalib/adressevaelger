@@ -1,5 +1,19 @@
 import { AdresseSearchAPI } from "./api.js";
 
+let instanceCount = 0;
+
+// Ids are interpolated into a stylesheet and into anchor-name, so they have to
+// be unique and usable as CSS identifiers. The counter guarantees uniqueness
+// within this module; the lookup additionally covers a second copy of the
+// bundle on the same page starting its own count.
+function nextElementId() {
+  let id;
+  do {
+    id = `adr-${++instanceCount}`;
+  } while (document.getElementById(id));
+  return id;
+}
+
 // Web component version of DAR search UI
 export class AdresseSearchInput extends HTMLElement {
   static observedAttributes = [
@@ -12,7 +26,7 @@ export class AdresseSearchInput extends HTMLElement {
     "token",
     "api-url",
   ];
-  elementId = `adr-${Math.ceil(Math.random() * 100000)}`;
+  elementId = nextElementId();
   disabled = false;
   placeholder = "Søg adresse";
   searchType = "adresser";
