@@ -20,7 +20,7 @@ Copy this example into a .html file to quickly test the component:
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href"./adressevaelger.css" />
+        <link rel="stylesheet" href="./adressevaelger.css" />
         <script src="./adressevaelger.iife.js"></script>
     </head>
     <body>
