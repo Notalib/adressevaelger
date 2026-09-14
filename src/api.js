@@ -18,12 +18,21 @@ export class AdresseSearchAPI {
     }
   }
 
-  async search(endpoint, query, options = {}) {
+  /**
+   * @param {string} endpoint
+   * @param {string} query
+   * @param {object} [options] search parameters, as documented in GUIDE.md
+   * @param {{signal?: AbortSignal}} [request] pass a signal to cancel a search
+   *   that has been superseded; the returned promise then rejects with the
+   *   signal's reason, as fetch does.
+   */
+  async search(endpoint, query, options = {}, { signal } = {}) {
     if (!endpoint || !query) {
       throw new Error("search() requires both endpoint and query parameters.");
     }
     const response = await fetch(
       `${this.apiUrl}/${endpoint}/soeg?token=${encodeURIComponent(this.token)}&tekst=${encodeURIComponent(query)}${this.formatParams(options)}`,
+      { signal },
     );
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
