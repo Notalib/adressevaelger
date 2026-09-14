@@ -87,6 +87,14 @@ jobs:
       - name: Verify the tag matches the package version
         run: |
           tag_version="${GITHUB_REF_NAME#v}"
+          # Semver build metadata is normalised away: npm reads 5.0.0+kb1 as
+          # plain 5.0.0, so it cannot distinguish a fork release from upstream's.
+          case "$tag_version" in
+            *+*)
+              echo "::error::Tag ${GITHUB_REF_NAME} carries build metadata (+${tag_version#*+}), which npm discards — it resolves as ${tag_version%%+*}. Use a prerelease suffix instead, e.g. 5.0.1-kb.1, which sorts above 5.0.0."
+              exit 1
+              ;;
+          esac
           pkg_version="$(node -p "require('./package.json').version")"
           if [ "$tag_version" != "$pkg_version" ]; then
             echo "::error::Tag ${GITHUB_REF_NAME} implies version ${tag_version}, but package.json says ${pkg_version}."
