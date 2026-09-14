@@ -120,6 +120,10 @@ export class AdresseSearchUI {
     ulEl.className = "adressevaelger-suggestions";
     ulEl.role = "listbox";
     ulEl.ariaLabel = "Søgeresultater";
+    // Firefox puts scrollable containers in the tab order on their own, so the
+    // list would become a tab stop as soon as it has a height to scroll within.
+    // An explicit -1 keeps it reachable by script and out of the tab sequence.
+    ulEl.tabIndex = -1;
     items.forEach((item) => {
       this.renderDOMListItem(ulEl, item);
     });
@@ -131,7 +135,11 @@ export class AdresseSearchUI {
     const liEl = document.createElement("li");
     liEl.className = "adressevaelger-suggestion";
     liEl.role = "option";
-    liEl.tabIndex = 0;
+    // Suggestions are moved through with the arrow keys, not with Tab: a search
+    // returns up to 100 of them, and at tabindex="0" every one is a tab stop
+    // between the field and the next control. -1 keeps moveFocus() working,
+    // since it focuses options by script.
+    liEl.tabIndex = -1;
     liEl.dataset.item = JSON.stringify(item);
     liEl.addEventListener("click", (event) => {
       this.selectProcessor(JSON.parse(event.target.dataset.item));
