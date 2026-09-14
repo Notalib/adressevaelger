@@ -14,8 +14,14 @@ function nextElementId() {
   return id;
 }
 
+// Fall back to a plain class outside browser-like environments (SSR, Node,
+// Jest/Vitest without jsdom) so importing this module doesn't throw just
+// because HTMLElement isn't defined there.
+const HTMLElementBase =
+  typeof HTMLElement !== "undefined" ? HTMLElement : class {};
+
 // Web component version of DAR search UI
-export class AdresseSearchInput extends HTMLElement {
+export class AdresseSearchInput extends HTMLElementBase {
   static observedAttributes = [
     "placeholder",
     "disabled",
