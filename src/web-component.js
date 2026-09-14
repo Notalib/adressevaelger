@@ -44,8 +44,6 @@ export class AdresseSearchInput extends HTMLElementBase {
   debounceTimer;
   /** Index of the option the arrow keys are on, or -1 for the text itself. */
   activeIndex = -1;
-  /** Whether the popover is showing; its contents outlive it being hidden. */
-  listOpen = false;
   /** Cancels the search that is in flight, if there is one. */
   searchController;
   inputElement;
@@ -248,13 +246,17 @@ export class AdresseSearchInput extends HTMLElementBase {
     // clicks outside it. beforetoggle is where that is noticed, so the
     // combobox state follows a light dismiss as well as our own calls.
     this.listElement.addEventListener("beforetoggle", (event) => {
-      // Hiding a popover leaves its contents in the DOM, so whether the list
-      // is open is not a question the options can answer.
-      this.listOpen = event.newState === "open";
-      if (!this.listOpen) {
-        this.setActive(-1);
-        this.inputElement?.setAttribute("aria-expanded", "false");
+      if (event.newState === "open") {
+        return;
       }
+      this.setActive(-1);
+      this.inputElement?.setAttribute("aria-expanded", "false");
+      // Hiding a popover leaves its contents in the DOM, which would let the
+      // arrow keys walk a list nobody can see and Enter select from it.
+      // Emptying it here means "the list holds options only while it is open"
+      // holds for this version too, as it always has for the legacy one, and
+      // every check can simply ask the options rather than track a flag.
+      this.listElement.replaceChildren();
     });
     this.append(this.listElement);
   }
@@ -411,31 +413,29 @@ export class AdresseSearchInput extends HTMLElementBase {
    * submits the form, and Escape with the list closed still reaches the field
    * and any dialog around it.
    *
-   * The open check is listOpen rather than the options, because hiding a
-   * popover leaves its contents in the DOM: arrowing after a dismissal would
-   * otherwise mark an option in a list nobody can see, and Enter would then
-   * select it.
+   * Whether the list is open is read from the options themselves, which the
+   * popover empties as it closes, rather than from a flag that has to be kept
+   * in step with it.
    */
   inputKeyHandler(event) {
+    const isOpen = this.optionElements().length > 0;
     switch (event.key) {
       case "ArrowUp":
-        if (!this.listOpen) {
+        if (!isOpen) {
           break;
         }
         event.preventDefault();
         this.moveActive(-1);
         break;
       case "ArrowDown":
-        if (!this.listOpen) {
+        if (!isOpen) {
           break;
         }
         event.preventDefault();
         this.moveActive(1);
         break;
       case "Enter": {
-        const active = this.listOpen
-          ? this.optionElements()[this.activeIndex]
-          : undefined;
+        const active = this.optionElements()[this.activeIndex];
         if (active) {
           event.preventDefault();
           this.listElement.hidePopover();
@@ -444,7 +444,7 @@ export class AdresseSearchInput extends HTMLElementBase {
         break;
       }
       case "Escape":
-        if (this.listOpen) {
+        if (isOpen) {
           event.preventDefault();
         }
         this.listElement.hidePopover();
