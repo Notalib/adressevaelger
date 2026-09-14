@@ -2,16 +2,31 @@
 /**
  * Reproductions for the open defects filed as issues on Notalib/adressevaelger.
  *
- * THESE TESTS ARE EXPECTED TO FAIL. Each one asserts the *correct* behaviour,
- * so a failure confirms the defect and a pass verifies a fix. The letter in
- * each test title is referenced from the corresponding issue.
+ * Each lettered test asserts the *correct* behaviour, so it FAILS while the
+ * defect is open and passes once it is fixed. The letter in the title is
+ * referenced from the corresponding issue.
+ *
+ * Tests prefixed "control:" are expected to PASS today. They pin down the
+ * behaviour the defects are contrasted with (for example, that the keyboard
+ * path already restores focus while the mouse path does not), and guard
+ * against the fixture itself being broken. "I1. web component" and both
+ * "I2." tests are controls too; they share a loop with the failing variant.
  *
  * The API is stubbed with page.route and the component is loaded on an
  * isolated fixture page, so nothing here touches the live service.
  *
  * Run:  npx playwright test test/open-defects.spec.js --reporter=line
+ *
+ * Make sure nothing else is listening on port 8000 first: playwright.config
+ * reuses an existing server there, so a dev server from another checkout
+ * would silently be the thing under test.
  */
 import { test, expect } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const API = "https://adressevaelger.dk/**";
 const H1 = "0a3f507b-37d7-32b8-e044-0003ba298018";
@@ -120,7 +135,7 @@ const active = (page) =>
   });
 
 // ---------------------------------------------------------------------------
-test("env: browser and CSS anchor positioning support", async ({ page, browserName }) => {
+test("control: browser and CSS anchor positioning support", async ({ page, browserName }) => {
   await gotoFixture(page);
   const info = await page.evaluate(() => ({
     ua: navigator.userAgent,
@@ -315,22 +330,26 @@ test("G. legacy: clearing the input closes the suggestion list", async ({ page, 
   expect(visible).toBe(0);
 });
 
-// H. Tab away leaves the list open
-for (const [label, getInput] of [
-  ["web component", wcInput],
-  ["legacy", legacyInput],
+// H. Focus leaving the component leaves the list open.
+// Focus is moved to the next field directly rather than with Tab, so this
+// isolates the missing focusout handling from the tab-stop defect (H2): with
+// Tab, focus would land on the first option and never leave the component.
+for (const [label, getInput, nextId] of [
+  ["web component", wcInput, "after-wc"],
+  ["legacy", legacyInput, "after-legacy"],
 ]) {
-  test(`H. ${label}: tabbing to the next field closes the list`, async ({ page, browserName }) => {
+  test(`H. ${label}: moving focus to the next field closes the list`, async ({ page, browserName }) => {
     await gotoFixture(page);
     await stubAPI(page);
     const input = getInput(page);
     await input.pressSequentially("Årh");
     await page.getByRole("option", { name: "Århusgade", exact: true }).waitFor();
-    await page.keyboard.press("Tab");
+    await page.locator(`#${nextId}`).focus();
     await page.waitForTimeout(100);
     const visible = await page.getByRole("option").filter({ visible: true }).count();
     const focused = await active(page);
-    console.log(`[${browserName}] H ${label}: focus=${focused}, visible options after Tab=${visible}`);
+    console.log(`[${browserName}] H ${label}: focus=${focused}, visible options after focus moved=${visible}`);
+    expect(focused).toBe(`input#${nextId}`);
     expect(visible).toBe(0);
   });
 }
@@ -389,9 +408,9 @@ for (const [label, getInput] of [
     await input.pressSequentially("Årh");
     await page.getByRole("option", { name: "Århusgade", exact: true }).waitFor();
     const after = await input.ariaSnapshot();
-    const expanded = await page.getByRole("combobox", { expanded: true }).count();
-    console.log(`[${browserName}] J ${label}: before=${JSON.stringify(before)} after=${JSON.stringify(after)} expandedComboboxes=${expanded}`);
-    expect(expanded).toBe(1);
+    const expanded = await input.getAttribute("aria-expanded");
+    console.log(`[${browserName}] J ${label}: before=${JSON.stringify(before)} after=${JSON.stringify(after)} aria-expanded=${expanded}`);
+    expect(expanded).toBe("true");
   });
 }
 
@@ -422,7 +441,7 @@ test("L. api: a 400 with a message surfaces that message", async ({ page, browse
 });
 
 // M. web component popover placement
-test("M. web component: popover sits under the input", async ({ page, browserName }) => {
+test("control M. web component: popover sits under the input", async ({ page, browserName }) => {
   await gotoFixture(page);
   await stubAPI(page);
   await wcInput(page).pressSequentially("Årh");
@@ -493,4 +512,16 @@ test("O. web component: still usable without the Popover API", async ({ page, br
   const ev = await events(page);
   console.log(`[${browserName}] O: visible options=${visible}, events=${JSON.stringify(ev)}, pageerrors=${JSON.stringify(errors)}`);
   expect(visible).toBe(3);
+});
+
+// P. the package cannot be imported where there is no DOM
+test("P. package: index.js can be imported in Node without a DOM", async () => {
+  // Runs in the Playwright worker process, which has no HTMLElement.
+  await expect(import(pathToFileURL(path.join(ROOT, "index.js")).href)).resolves.toBeDefined();
+});
+
+// Q. README quick start links the stylesheet
+test("Q. docs: README quick start has a well-formed stylesheet link", () => {
+  const readme = readFileSync(path.join(ROOT, "README.md"), "utf8");
+  expect(readme).toContain('href="./adressevaelger.css"');
 });
