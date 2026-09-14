@@ -1,7 +1,40 @@
 import { AdresseSearchAPI } from "./api.js";
 
+// A picker is wired to an element the caller owns, and a plain class gets no
+// notification when that element is removed. One shared observer releases any
+// picker whose input has left the document, so that closing a dialog is enough
+// to drop its listeners even when the caller never calls destroy().
+const livePickers = new Set();
+let detachObserver;
+
+function releaseOnDetach(picker) {
+  livePickers.add(picker);
+  if (detachObserver) {
+    return;
+  }
+  detachObserver = new MutationObserver(() => {
+    for (const candidate of livePickers) {
+      if (!candidate.wasConnected) {
+        // Set up before its input was inserted: not detached, not yet attached.
+        candidate.wasConnected = candidate.inputElement.isConnected;
+      } else if (!candidate.inputElement.isConnected) {
+        candidate.destroy();
+      }
+    }
+  });
+  detachObserver.observe(document, { childList: true, subtree: true });
+}
+
+function stopWatching(picker) {
+  livePickers.delete(picker);
+  if (livePickers.size === 0 && detachObserver) {
+    detachObserver.disconnect();
+    detachObserver = undefined;
+  }
+}
+
 export function adressevaelger(element, options) {
-  const adressevaelgerui = new AdresseSearchUI(element, options);
+  return new AdresseSearchUI(element, options);
 }
 
 export class AdresseSearchUI {
@@ -12,6 +45,8 @@ export class AdresseSearchUI {
   inputElement;
   listElement;
   api;
+  abortController = new AbortController();
+  wasConnected = false;
 
   constructor(element, options) {
     this.options = options;
@@ -20,16 +55,37 @@ export class AdresseSearchUI {
     this.listElement = document.createElement("div");
     this.wrapperElement = this.inputElement.parentNode;
     this.wrapperElement.append(this.listElement);
-    this.inputElement.addEventListener("input", this.inputHandler.bind(this));
+    const { signal } = this.abortController;
+    this.inputElement.addEventListener("input", this.inputHandler.bind(this), {
+      signal,
+    });
     this.wrapperElement.addEventListener(
       "keyup",
       this.listKeyHandler.bind(this),
+      { signal },
     );
-    document.addEventListener("click", this.outsideClickHandler.bind(this));
+    document.addEventListener("click", this.outsideClickHandler.bind(this), {
+      signal,
+    });
     const opt = this.options.apiUrl
       ? { token: options.token, apiUrl: this.options.apiUrl }
       : { token: options.token };
     this.api = new AdresseSearchAPI(opt);
+    this.wasConnected = this.inputElement.isConnected;
+    releaseOnDetach(this);
+  }
+
+  /**
+   * Remove every listener, cancel any pending search and drop the suggestion
+   * list. Called automatically when the input leaves the document, and safe to
+   * call again.
+   */
+  destroy() {
+    this.abortController.abort();
+    clearTimeout(this.debounceTimer);
+    this.debounceTimer = undefined;
+    this.listElement.remove();
+    stopWatching(this);
   }
 
   inputHandler(event) {
