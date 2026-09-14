@@ -22,6 +22,12 @@
   left: 0;
   right: 0;
   z-index: 9999;
+  /* A default search returns 100 results, which is around 3200px of list: with
+     nothing to scroll within, overflow-y had nothing to do and the list simply
+     covered the page from the field downwards. The cap matches the web
+     component's. Override it by loading your own rule for this class after
+     adressevaelger.css. */
+  max-height: 50vh;
   overflow-y: auto;
   box-sizing: border-box;
 }
