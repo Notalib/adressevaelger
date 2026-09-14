@@ -36,6 +36,8 @@ export class AdresseSearchInput extends HTMLElement {
     medtagForeloebige: null,
   };
   debounceTimer;
+  /** Index of the option the arrow keys are on, or -1 for the text itself. */
+  activeIndex = -1;
   inputElement;
   listElement;
   styleElement;
@@ -186,15 +188,29 @@ export class AdresseSearchInput extends HTMLElement {
     this.inputElement = document.createElement("input");
     this.inputElement.id = `${this.elementId}-input`;
     this.inputElement.type = "search";
-    this.inputElement.role = "combobox";
-    this.inputElement.ariaAutocomplete = "list";
-    this.inputElement.ariaControls = `${this.elementId}-list`;
+    // Written with setAttribute rather than the IDL properties: element.role
+    // and element.ariaExpanded reflect, but element.ariaControls and
+    // element.ariaAutocomplete exist in no engine (measured on chromium, webkit
+    // and firefox), so the two assignments that used them set a plain
+    // JavaScript property and never reached the accessibility tree.
+    this.inputElement.setAttribute("role", "combobox");
+    this.inputElement.setAttribute("aria-autocomplete", "list");
+    this.inputElement.setAttribute("aria-controls", `${this.elementId}-list`);
+    this.inputElement.setAttribute("aria-expanded", "false");
     this.inputElement.placeholder = this.placeholder;
     this.inputElement.disabled = this.disabled;
     this.inputElement.addEventListener("input", this.inputHandler.bind(this));
     this.inputElement.addEventListener(
       "keyup",
       this.inputKeyHandler.bind(this),
+    );
+    this.inputElement.addEventListener(
+      "keydown",
+      this.keyDownHandler.bind(this),
+    );
+    this.inputElement.addEventListener(
+      "focusout",
+      this.focusOutHandler.bind(this),
     );
     this.append(this.inputElement);
   }
@@ -212,25 +228,44 @@ export class AdresseSearchInput extends HTMLElement {
     // containers in the tab order on their own. An explicit -1 keeps it
     // reachable by script and out of the tab sequence.
     this.listElement.tabIndex = -1;
-    this.listElement.addEventListener("keyup", this.listKeyHandler.bind(this));
+    // Pressing the mouse on an option would otherwise take focus off the
+    // input, dismissing the popover before the click that selects had landed.
+    this.listElement.addEventListener("mousedown", (event) =>
+      event.preventDefault(),
+    );
+    // The popover also closes on its own, when the user presses Escape or
+    // clicks outside it. beforetoggle is where that is noticed, so the
+    // combobox state follows a light dismiss as well as our own calls.
+    this.listElement.addEventListener("beforetoggle", (event) => {
+      if (event.newState !== "open") {
+        this.setActive(-1);
+        this.inputElement?.setAttribute("aria-expanded", "false");
+      }
+    });
     this.append(this.listElement);
   }
 
   renderListItems(items) {
     this.listElement.hidePopover();
     this.listElement.innerHTML = "";
-    items.forEach((item) => {
-      this.listElement.append(this.createListItem(item));
+    // A search with no hits used to open an empty popover.
+    if (items.length === 0) {
+      return;
+    }
+    items.forEach((item, index) => {
+      this.listElement.append(this.createListItem(item, index));
     });
     this.listElement.showPopover();
+    this.setActive(-1);
+    this.inputElement.setAttribute("aria-expanded", "true");
   }
 
-  createListItem(item) {
+  createListItem(item, index) {
     const liElement = document.createElement("li");
+    liElement.id = `${this.elementId}-option-${index}`;
     // Suggestions are moved through with the arrow keys, not with Tab: a search
     // returns up to 100 of them, and at tabindex="0" every one is a tab stop
-    // between the field and the next control. -1 keeps inputKeyHandler() and
-    // moveFocus() working, since both focus options by script.
+    // between the field and the next control.
     liElement.tabIndex = -1;
     liElement.role = "option";
     liElement.innerText = item.titel;
@@ -239,15 +274,54 @@ export class AdresseSearchInput extends HTMLElement {
     return liElement;
   }
 
-  moveFocus(direction) {
-    const next = this.listElement.querySelector(":focus").nextElementSibling;
-    const previous =
-      this.listElement.querySelector(":focus").previousElementSibling;
-    if (direction === 1 && next) {
-      next.focus();
-    } else if (direction === -1 && previous) {
-      previous.focus();
+  /** The rendered options, in order; empty when nothing has been searched. */
+  optionElements() {
+    return [...this.listElement.querySelectorAll("li")];
+  }
+
+  /**
+   * Point the combobox at one option, or at the text itself with -1. Nothing
+   * is focused: the input keeps DOM focus throughout, and aria-activedescendant
+   * is what tells a screen reader where the arrow keys have got to.
+   */
+  setActive(index) {
+    const options = this.optionElements();
+    this.activeIndex = index;
+    options.forEach((option, position) => {
+      const isActive = position === index;
+      option.classList.toggle("dawa-selected", isActive);
+      if (isActive) {
+        option.setAttribute("aria-selected", "true");
+      } else {
+        option.removeAttribute("aria-selected");
+      }
+    });
+    const active = options[index];
+    if (!this.inputElement) {
+      return;
     }
+    if (active) {
+      this.inputElement.setAttribute("aria-activedescendant", active.id);
+      // Nothing in the list is focused any more, so the list will not scroll
+      // itself to keep up with the arrow keys.
+      active.scrollIntoView({ block: "nearest" });
+    } else {
+      this.inputElement.removeAttribute("aria-activedescendant");
+    }
+  }
+
+  /**
+   * Move the active option one step. What was typed is part of the ring, at
+   * -1: arrowing past either end of the list comes back to it.
+   */
+  moveActive(direction) {
+    const options = this.optionElements();
+    if (options.length === 0) {
+      return;
+    }
+    const positions = options.length + 1;
+    const from = this.activeIndex + 1;
+    this.setActive(((from + direction + positions) % positions) - 1);
   }
 
   async refreshList(value) {
@@ -275,25 +349,49 @@ export class AdresseSearchInput extends HTMLElement {
   }
 
   inputKeyHandler(event) {
-    if (event.key === "ArrowDown") {
-      this.listElement.childNodes[0].focus();
-    }
-  }
-
-  listKeyHandler(event) {
     switch (event.key) {
       case "ArrowUp":
-        this.moveFocus(-1);
+        this.moveActive(-1);
         break;
       case "ArrowDown":
-        this.moveFocus(1);
+        this.moveActive(1);
         break;
-      case "Enter":
+      case "Enter": {
+        const active = this.optionElements()[this.activeIndex];
+        if (active) {
+          this.listElement.hidePopover();
+          this.selectProcessor(JSON.parse(active.dataset.item));
+        }
+        break;
+      }
+      case "Escape":
         this.listElement.hidePopover();
-        this.selectProcessor(JSON.parse(event.target.dataset.item));
         break;
       default:
       // Nothing
+    }
+  }
+
+  /**
+   * An <input type="search"> empties itself when Escape is pressed, which
+   * would throw away what the user typed just to close the suggestions.
+   * Navigation runs on keyup, too late to prevent that, so the default is
+   * cancelled here while the list is open; inputKeyHandler still closes it.
+   */
+  keyDownHandler(event) {
+    if (event.key === "Escape" && this.optionElements().length > 0) {
+      event.preventDefault();
+    }
+  }
+
+  /**
+   * Close when focus leaves the component. Options cannot take focus — the
+   * list cancels mousedown and none of it is tabbable — so this fires when the
+   * user tabs or clicks away, and not while they are working in the list.
+   */
+  focusOutHandler(event) {
+    if (!this.contains(event.relatedTarget)) {
+      this.listElement.hidePopover();
     }
   }
 
