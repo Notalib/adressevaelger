@@ -22,6 +22,23 @@ npm ci && npm run build     # writes dist/
 npm run dev                 # serves the demo page while you work
 ```
 
+## Releasing
+
+A release is published from a GitHub release, not from a pushed tag:
+
+1. Set the version in `package.json` on `main` — `npm version 5.0.1 --no-git-tag-version`.
+2. Draft a release whose tag is `v<version>`, matching it exactly, and publish it.
+
+The workflow builds, tests and then publishes to GitHub Packages. It refuses a
+release that is not an ancestor of `main`, whose tag does not start with `v`,
+whose tag and `package.json` disagree, or whose version carries `+build`
+metadata (npm discards it, so `5.0.0+kb1` would collide with plain `5.0.0` —
+use `5.0.1-kb.1` instead).
+
+A version with a prerelease suffix, or a release marked as a prerelease, is
+published under the `next` tag, so that `npm install @notalib/adressevaelger`
+keeps resolving to the last stable one.
+
 Copy this example into a .html file to quickly test the component:
 
 ```html
