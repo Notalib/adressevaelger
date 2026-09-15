@@ -64,9 +64,8 @@ const FIXTURE_HTML = `<!doctype html>
       </div>
       <input id="after-legacy" />
 
-      <!-- The caller's own autocomplete has to survive being turned into a
-           combobox: an address field is exactly where someone would ask for
-           the browser's address autofill on purpose. -->
+      <!-- A caller who set their own autocomplete, to check what happens to
+           it when the field becomes a combobox. -->
       <label for="legacy-autofill">Adresse med autofill</label>
       <div class="autocomplete-container">
         <input type="search" id="legacy-autofill" autocomplete="street-address" />
@@ -189,17 +188,18 @@ for (const { label, input, next } of versions) {
   });
 }
 
-test("legacy: an autocomplete the caller chose is left alone", async ({
+test("legacy: an autocomplete the caller set is overridden", async ({
   page,
 }) => {
   await gotoFixture(page);
 
-  // The legacy version is handed an input it does not own, and an address
-  // field is exactly where someone would ask for the browser's address
-  // autofill deliberately.
+  // dawa-autocomplete2 set autocomplete="off" on the caller's input, so a site
+  // following MIGRATION-GUIDE.md keeps the behaviour it already had rather
+  // than gaining a browser dropdown over the suggestions. A caller who wants
+  // their own value back can set it after adressevaelger() returns.
   await expect(page.locator("#legacy-autofill")).toHaveAttribute(
     "autocomplete",
-    "street-address",
+    "off",
   );
 });
 

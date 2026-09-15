@@ -87,12 +87,10 @@ export class AdresseSearchUI {
     // Without this the browser opens its own history dropdown over the
     // suggestions, and takes the keys meant for them: in firefox, once the
     // field has been submitted in a form, Enter is consumed by that dropdown
-    // and never reaches the listbox. The input belongs to the caller, so an
-    // autocomplete they chose themselves — "street-address", say — is left
-    // alone.
-    if (!this.inputElement.hasAttribute("autocomplete")) {
-      this.inputElement.setAttribute("autocomplete", "off");
-    }
+    // and never reaches the listbox. Set unconditionally, as
+    // dawa-autocomplete2 did on the caller's input, so that a site following
+    // the migration guide does not lose the behaviour it already had.
+    this.inputElement.setAttribute("autocomplete", "off");
     const { signal } = this.abortController;
     this.inputElement.addEventListener("input", this.inputHandler.bind(this), {
       signal,
