@@ -84,6 +84,15 @@ export class AdresseSearchUI {
     this.inputElement.setAttribute("aria-autocomplete", "list");
     this.inputElement.setAttribute("aria-controls", this.listId);
     this.inputElement.setAttribute("aria-expanded", "false");
+    // Without this the browser opens its own history dropdown over the
+    // suggestions, and takes the keys meant for them: in firefox, once the
+    // field has been submitted in a form, Enter is consumed by that dropdown
+    // and never reaches the listbox. The input belongs to the caller, so an
+    // autocomplete they chose themselves — "street-address", say — is left
+    // alone.
+    if (!this.inputElement.hasAttribute("autocomplete")) {
+      this.inputElement.setAttribute("autocomplete", "off");
+    }
     const { signal } = this.abortController;
     this.inputElement.addEventListener("input", this.inputHandler.bind(this), {
       signal,

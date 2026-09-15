@@ -64,6 +64,14 @@ const FIXTURE_HTML = `<!doctype html>
       </div>
       <input id="after-legacy" />
 
+      <!-- The caller's own autocomplete has to survive being turned into a
+           combobox: an address field is exactly where someone would ask for
+           the browser's address autofill on purpose. -->
+      <label for="legacy-autofill">Adresse med autofill</label>
+      <div class="autocomplete-container">
+        <input type="search" id="legacy-autofill" autocomplete="street-address" />
+      </div>
+
       <adresse-search-input token="test-token"></adresse-search-input>
       <input id="after-wc" />
 
@@ -89,6 +97,10 @@ const FIXTURE_HTML = `<!doctype html>
         }),
       );
       window.picker = lib.adressevaelger(document.getElementById("legacy"), {
+        token: "test-token",
+        select() {},
+      });
+      lib.adressevaelger(document.getElementById("legacy-autofill"), {
         token: "test-token",
         select() {},
       });
@@ -163,6 +175,38 @@ for (const { label, input, next } of versions) {
     await expect(field).toHaveAttribute("aria-expanded", "true");
     await expect(page.locator(`#${listId}`)).toHaveRole("listbox");
   });
+
+  test(`${label}: the browser's own autocomplete is turned off`, async ({
+    page,
+  }) => {
+    await gotoFixture(page);
+
+    // Left on, the browser opens its history dropdown over the suggestions and
+    // takes the keys meant for them — in firefox, once the field has been
+    // submitted in a form, Enter goes to that dropdown and never reaches the
+    // listbox.
+    await expect(combobox(page)).toHaveAttribute("autocomplete", "off");
+  });
+}
+
+test("legacy: an autocomplete the caller chose is left alone", async ({
+  page,
+}) => {
+  await gotoFixture(page);
+
+  // The legacy version is handed an input it does not own, and an address
+  // field is exactly where someone would ask for the browser's address
+  // autofill deliberately.
+  await expect(page.locator("#legacy-autofill")).toHaveAttribute(
+    "autocomplete",
+    "street-address",
+  );
+});
+
+for (const { label, input, next } of versions) {
+  const combobox = (page) => page.locator(input);
+  const options = (page) =>
+    page.locator(input).locator("xpath=..").getByRole("option");
 
   test(`${label}: no suggestions means the combobox is not expanded`, async ({
     page,
