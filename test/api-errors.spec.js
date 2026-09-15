@@ -166,9 +166,52 @@ for (const { label, input } of versions) {
     await expect.poll(() => page.evaluate(() => window.events.length)).toBe(1);
 
     const error = await firstError(page);
+    expect(error.detail, "the page's title, not its markup").toBe(
+      "502 Bad Gateway",
+    );
+    expect(error.detail).not.toContain("<");
+    expect(error.status).toBe(502);
+  });
+
+  test(`${label}: a page with no title is stripped of its markup`, async ({
+    page,
+  }) => {
+    await gotoFixture(page, {
+      status: 502,
+      contentType: "text/html",
+      body: `<html><body>\n${"<p>bad gateway</p>\n".repeat(80)}</body></html>`,
+    });
+
+    await combobox(page).pressSequentially("Årh");
+    await expect.poll(() => page.evaluate(() => window.events.length)).toBe(1);
+
+    const error = await firstError(page);
+    expect(error.detail).not.toContain("<");
     expect(error.detail.length).toBeLessThanOrEqual(201);
     expect(error.detail, "collapsed to one line").not.toContain("\n");
-    expect(error.status).toBe(502);
+  });
+
+  test(`${label}: a refusal the service answers 200 with carries no status`, async ({
+    page,
+  }) => {
+    // An expired token comes back as 200 with a "fejl" envelope. Reporting
+    // status 200 on a failed search would make the field useless to branch on.
+    await gotoFixture(page, {
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        status: "fejl",
+        beskrivelse: "Token er ikke gyldigt",
+      }),
+    });
+
+    await combobox(page).pressSequentially("Årh");
+    await expect.poll(() => page.evaluate(() => window.events.length)).toBe(1);
+
+    const error = await firstError(page);
+    expect(error.detail).toBe("Token er ikke gyldigt");
+    expect(error.message).toContain("Token er ikke gyldigt");
+    expect(error.status, "no failing status to report").toBeUndefined();
   });
 
   test(`${label}: the user is not shown the service's words`, async ({

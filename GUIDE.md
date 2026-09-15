@@ -206,6 +206,30 @@ default: `https://adressevaelger.dk`
 
 Point to a different API
 
+## The address:error event
+
+A search or a lookup that fails dispatches `address:error` from the input (or
+from the element, for the web component). Its `detail` carries three things:
+
+```js
+element.addEventListener("address:error", (event) => {
+  const { message, status, detail } = event.detail;
+});
+```
+
+- `message` — the whole thing, ready for a log.
+- `status` — the HTTP status, **when the request itself failed**: `504` for a
+  gateway timeout worth retrying, `400` for a request the service would not
+  accept. Absent when the service answered `200` and refused the search in its
+  own envelope — an expired token, for instance — because there is no failing
+  status to report.
+- `detail` — the service's own words, on their own: `upstream request timeout`,
+  `maksimum skal være <= 200 (500)`, `Token er ikke gyldigt`.
+
+The user is shown a general sentence instead. These messages are about the
+service's health or the way the component was configured, and none of them is
+something the person typing an address can act on.
+
 ## What the component sets on your input
 
 The legacy `adressevaelger()` is handed an input you own, and turns it into an
