@@ -32,6 +32,28 @@
   box-sizing: border-box;
 }
 
+/* Announced but not drawn: the result count and "no hits" are for a screen
+   reader, since a sighted user can see the list appear or stay away. */
+.adressevaelger-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A failed search is the one message everyone needs, so it is on screen too.
+   #b00020 on the page background clears WCAG 1.4.3 at this size. */
+.adressevaelger-error {
+  margin: 0.3em 0 0 0;
+  color: #b00020;
+  font-size: 0.875em;
+}
+
 .adressevaelger-suggestions .adressevaelger-suggestion {
   margin: 0;
   list-style: none;
