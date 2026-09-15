@@ -210,6 +210,11 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.inputElement.setAttribute("aria-autocomplete", "list");
     this.inputElement.setAttribute("aria-controls", `${this.elementId}-list`);
     this.inputElement.setAttribute("aria-expanded", "false");
+    // Without this the browser opens its own history dropdown over the
+    // suggestions, and takes the keys meant for them: in firefox, once the
+    // field has been submitted in a form, Enter is consumed by that dropdown
+    // and never reaches the listbox.
+    this.inputElement.setAttribute("autocomplete", "off");
     this.inputElement.placeholder = this.placeholder;
     this.inputElement.disabled = this.disabled;
     this.inputElement.addEventListener("input", this.inputHandler.bind(this));
