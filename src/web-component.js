@@ -3,6 +3,8 @@ import { texts } from "./texts.js";
 
 let instanceCount = 0;
 
+const defaultPlaceholder = "Søg adresse";
+
 // Ids are interpolated into a stylesheet and into anchor-name, so they have to
 // be unique and usable as CSS identifiers. The counter guarantees uniqueness
 // within this module; the lookup additionally covers a second copy of the
@@ -35,7 +37,7 @@ export class AdresseSearchInput extends HTMLElementBase {
   ];
   elementId = nextElementId();
   disabled = false;
-  placeholder = "Søg adresse";
+  placeholder = defaultPlaceholder;
   searchType = "adresser";
   options = {
     kommuneKode: null,
@@ -163,33 +165,41 @@ export class AdresseSearchInput extends HTMLElementBase {
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
+    // A removed attribute arrives here as null, and every case has to undo
+    // itself for it: before, removing disabled, adgangsadresser-only or
+    // medtag-foreloebige left each of them switched on.
     switch (name) {
       case "token":
         this.token = newValue;
         break;
       case "adgangsadresser-only":
-        this.searchType = "husnumre";
+        this.searchType = newValue !== null ? "husnumre" : "adresser";
         break;
       case "placeholder":
-        this.placeholder = newValue;
+        this.placeholder = newValue ?? defaultPlaceholder;
         break;
       case "kommune-kode":
         this.options.kommuneKode = newValue;
         break;
       case "maksimum":
-        this.options.maksimum = Number(newValue);
+        this.options.maksimum = newValue !== null ? Number(newValue) : null;
         break;
       case "medtag-foreloebige":
-        this.options.medtagForeloebige = newValue !== "false" ? true : false;
+        // Present means on, as for any boolean attribute; "false" has always
+        // been accepted as off, and still is.
+        this.options.medtagForeloebige =
+          newValue !== null && newValue !== "false";
         break;
       case "api-url":
         this.options.apiUrl = newValue;
         break;
+      case "disabled":
+        // By presence, as on <input> itself: disabled="disabled", which is
+        // what Angular's [attr.disabled] writes, was ignored when only "" was.
+        this.disabled = newValue !== null;
+        break;
       default:
       // Nothing
-    }
-    if (name === "disabled" && newValue === "") {
-      this.disabled = true;
     }
     this.setAPI();
     this.renderInput();
@@ -256,9 +266,18 @@ export class AdresseSearchInput extends HTMLElementBase {
   }
 
   renderInput() {
-    if (this.inputElement) {
-      this.inputElement.remove();
+    // The field is made once and updated in place after that. Replacing it on
+    // every attribute change emptied what the user had typed, took their
+    // focus, and dropped any listener the page had put on it; a form disabling
+    // its fields while it saves did all three.
+    if (!this.inputElement) {
+      this.createInput();
     }
+    this.inputElement.placeholder = this.placeholder;
+    this.inputElement.disabled = this.disabled;
+  }
+
+  createInput() {
     this.inputElement = document.createElement("input");
     this.inputElement.id = `${this.elementId}-input`;
     this.inputElement.type = "search";
@@ -276,8 +295,6 @@ export class AdresseSearchInput extends HTMLElementBase {
     // field has been submitted in a form, Enter is consumed by that dropdown
     // and never reaches the listbox.
     this.inputElement.setAttribute("autocomplete", "off");
-    this.inputElement.placeholder = this.placeholder;
-    this.inputElement.disabled = this.disabled;
     this.inputElement.addEventListener("input", this.inputHandler.bind(this));
     this.inputElement.addEventListener(
       "keydown",
@@ -287,9 +304,9 @@ export class AdresseSearchInput extends HTMLElementBase {
       "focusout",
       this.focusOutHandler.bind(this),
     );
-    // Prepended, not appended: after connectedCallback the status, alert and
-    // list are already children, so appending would put the field below its own
-    // error line on the next attribute change.
+    // Prepended, not appended: when the first attribute is set after
+    // connectedCallback, the status, alert and list are already children, and
+    // appending would put the field below its own error line.
     this.prepend(this.inputElement);
   }
 
