@@ -1,4 +1,5 @@
 import { AdresseSearchAPI } from "./api.js";
+import { texts } from "./texts.js";
 
 let instanceCount = 0;
 
@@ -48,6 +49,8 @@ export class AdresseSearchInput extends HTMLElementBase {
   searchController;
   inputElement;
   listElement;
+  statusElement;
+  errorElement;
   styleElement;
   api;
   token;
@@ -62,6 +65,22 @@ export class AdresseSearchInput extends HTMLElementBase {
       anchor-name: --input-${this.elementId};
       width: 100%;
       display: block;
+    }
+    #${this.elementId}-status {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      border: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    #${this.elementId}-error {
+      margin: 0.3em 0 0 0;
+      color: #b00020;
+      font-size: 0.875em;
     }
     #${this.elementId}-list {
       margin: 0;
@@ -101,6 +120,10 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.debounceTimer = undefined;
     this.styleElement?.remove();
     this.styleElement = undefined;
+    this.statusElement?.remove();
+    this.statusElement = undefined;
+    this.errorElement?.remove();
+    this.errorElement = undefined;
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -233,6 +256,22 @@ export class AdresseSearchInput extends HTMLElementBase {
     if (this.listElement) {
       this.listElement.remove();
     }
+    // A list appearing, emptying or failing is a change the user did not make
+    // and cannot see unless they are looking at it. Both regions are in the
+    // document from the start: a live region added and filled in one go is not
+    // announced. The count goes to a polite status; a failed search is
+    // assertive, and on screen as well, because it is the one the user has to
+    // act on.
+    this.statusElement?.remove();
+    this.statusElement = document.createElement("div");
+    this.statusElement.id = `${this.elementId}-status`;
+    this.statusElement.role = "status";
+    this.errorElement?.remove();
+    this.errorElement = document.createElement("p");
+    this.errorElement.id = `${this.elementId}-error`;
+    this.errorElement.role = "alert";
+    this.errorElement.hidden = true;
+    this.append(this.statusElement, this.errorElement);
     this.listElement = document.createElement("ul");
     this.listElement.id = `${this.elementId}-list`;
     this.listElement.popover = "auto";
@@ -266,13 +305,45 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.append(this.listElement);
   }
 
+  /** Say something through the polite live region. */
+  announce(message) {
+    if (this.statusElement) {
+      this.statusElement.textContent = message;
+    }
+  }
+
+  /** Put a failure on screen, and in front of a screen reader. */
+  showError(message) {
+    if (!this.errorElement) {
+      return;
+    }
+    this.errorElement.textContent = message;
+    this.errorElement.hidden = false;
+    // A failure and a result count at the same time would talk over each
+    // other, and the count is the stale one.
+    this.announce("");
+  }
+
+  clearError() {
+    if (!this.errorElement) {
+      return;
+    }
+    this.errorElement.textContent = "";
+    this.errorElement.hidden = true;
+  }
+
   renderListItems(items) {
     this.listElement.hidePopover();
     this.listElement.innerHTML = "";
+    // A search that returns anything at all clears a failure the user was
+    // shown for the last one.
+    this.clearError();
     // A search with no hits used to open an empty popover.
     if (items.length === 0) {
+      this.announce(texts.noResults);
       return;
     }
+    this.announce(texts.results(items.length));
     items.forEach((item, index) => {
       this.listElement.append(this.createListItem(item, index));
     });
@@ -398,6 +469,8 @@ export class AdresseSearchInput extends HTMLElementBase {
     if (event.target.value === "") {
       this.cancelSearch();
       this.listElement.hidePopover();
+      this.clearError();
+      this.announce("");
       return;
     }
     // Read now rather than when the timer fires: selectProcessor assigns to
@@ -472,6 +545,9 @@ export class AdresseSearchInput extends HTMLElementBase {
 
   errorHandler(err) {
     console.error(err);
+    // The user gets a sentence they can act on; the detail stays in the event
+    // and the console for whoever is debugging.
+    this.showError(texts.searchFailed);
     this.dispatchEvent(
       new CustomEvent("address:error", {
         bubbles: true,
