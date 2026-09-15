@@ -159,6 +159,58 @@ Add the following markup and script to your HTML `<body>` section:
 </script>
 ```
 
+## Script option 3: Web component
+
+Register the element under a name of your choice, and put it in your markup
+with a `label`:
+
+```html
+<!-- HTML -->
+<adresse-search-input
+  token="your-token-here"
+  label="Søg efter adresser"
+></adresse-search-input>
+
+<!-- Javascript -->
+<script type="module">
+  import { AdresseSearchInput } from "./adressevaelger.esm.js";
+  customElements.define("adresse-search-input", AdresseSearchInput);
+
+  document
+    .querySelector("adresse-search-input")
+    .addEventListener("address:select", (event) => {
+      console.log("Valgt adresse: ", event.detail);
+    });
+</script>
+```
+
+The element makes its own input, so there is no input of yours to point a
+`<label for>` at, and the input's id is generated. Give it a `label` instead:
+the element puts a `<label>` for its input in front of it, visible and tied to
+the field, and keeps it in step when the attribute changes. Without one, the
+field is named only by its placeholder, which disappears as soon as the user
+types and which some screen readers read only as a hint. Style it with
+`adresse-search-input label`, or whatever name you registered.
+
+Attributes:
+
+| Attribute | Legacy option |
+|---|---|
+| `token` (required) | [token](#token-string-required) |
+| `label` | — the visible label for the field |
+| `placeholder` | — default `Søg adresse` |
+| `disabled` | — |
+| `adgangsadresser-only` | [adgangsadresserOnly](#adgangsadresseronly-boolean) |
+| `kommune-kode` | [kommuneKode](#kommunekode-string) |
+| `maksimum` | [maksimum](#maksimum-number) |
+| `medtag-foreloebige` | [medtagForeloebige](#medtagforeloebige-boolean) |
+| `api-url` | [apiUrl](#apiurl-string) |
+
+`disabled`, `adgangsadresser-only` and `medtag-foreloebige` are on while
+present, except `medtag-foreloebige="false"`, which is off. Instead of a `select` callback, the element dispatches
+`address:select` with the selected object as `detail`, and `address:error` as
+described [below](#the-addresserror-event).
+
 ## adressevaelger Options
 
 Here are the options for `adressevaelger` function in pseudocode format:
