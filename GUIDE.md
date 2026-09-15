@@ -211,6 +211,19 @@ Uses the selected object as the first parameter.
 
 Access token - [Learn how to get one at confluence.sdfi.dk](https://confluence.sdfi.dk/display/ADV/Brugerstyring)
 
+When a token expires, give the picker a new one rather than setting it up
+again. `adressevaelger()` returns the picker, and every request after the call
+uses the new token:
+
+```js
+const picker = adressevaelger(inputElement, { token: "old-token", select });
+// …later
+picker.setToken("new-token");
+```
+
+An empty token throws, and the picker keeps the one it had. For the web
+component, set its `token` attribute instead.
+
 ### apiUrl: string
 default: `https://adressevaelger.dk`
 
