@@ -28,6 +28,15 @@ export const ctxCJS = await esbuild.context({
   keepNames: true,
 });
 
+// The demo page is source, not output: it is written by hand and copied into
+// dist beside the bundles it loads, so that `npm run dev` serves a working
+// page and `npm run build` produces one.
+export const ctxDemo = await esbuild.context({
+  entryPoints: ["demo/index.html"],
+  outdir: "dist",
+  loader: { ".html": "copy" },
+});
+
 export const ctxCSS = await esbuild.context({
   entryPoints: ["src/style.css"],
   bundle: true,
