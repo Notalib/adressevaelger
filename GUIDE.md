@@ -181,6 +181,12 @@ default: `undefined`
 
 Max number of search hits to return.
 
+Left out, the API returns **100**. It accepts values up to **200** and rejects
+anything larger with a `400` — `maksimum skal være <= 200 (500)` — which
+arrives as an `address:error` carrying that message, a `status` of `400` and
+the service's own text in `detail`. The component does not check the value
+itself, so that a cap the API raises later works without a new release.
+
 ### medtagForeloebige: boolean
 default: `false`
 

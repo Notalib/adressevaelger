@@ -1,3 +1,48 @@
+/** Longest error body worth carrying: enough for a sentence, not a page. */
+const MAX_DETAIL_LENGTH = 200;
+
+/**
+ * What the service said went wrong. Its error bodies are plain text —
+ * "maksimum skal være <= 200 (500)", "upstream request timeout" — but a proxy
+ * in front of it may answer with JSON or with a page of HTML, so this takes
+ * whichever it finds and keeps it to a readable length.
+ *
+ * @param {Response} response
+ * @returns {Promise<string>} the message, or "" when there is nothing to read
+ */
+async function errorDetail(response) {
+  let body;
+  try {
+    body = await response.text();
+  } catch {
+    // A body that cannot be read tells us nothing the status has not already.
+    return "";
+  }
+  let message = body.trim();
+  try {
+    const parsed = JSON.parse(message);
+    message = String(parsed?.beskrivelse ?? parsed?.message ?? message);
+  } catch {
+    // Not JSON: the plain text is what we wanted anyway.
+  }
+  message = message.replace(/\s+/g, " ").trim();
+  return message.length > MAX_DETAIL_LENGTH
+    ? `${message.slice(0, MAX_DETAIL_LENGTH)}…`
+    : message;
+}
+
+/**
+ * The service answered, and said no. Carries the status and its own words
+ * separately from the message, so that a caller can tell a 504 worth retrying
+ * from a 400 about their own configuration without parsing English.
+ */
+function requestFailed(status, detail) {
+  const error = new Error(detail ? `HTTP ${status}: ${detail}` : `HTTP ${status}`);
+  error.status = status;
+  error.detail = detail;
+  return error;
+}
+
 /**
  * options.endpoint options.token
  */
@@ -35,11 +80,11 @@ export class AdresseSearchAPI {
       { signal },
     );
     if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+      throw requestFailed(response.status, await errorDetail(response));
     }
     const data = await response.json();
     if (data.status === "fejl") {
-      throw new Error(`Search error: ${data.beskrivelse}`);
+      throw requestFailed(response.status, data.beskrivelse);
     }
     return data.fund;
   }
@@ -52,11 +97,11 @@ export class AdresseSearchAPI {
       `${this.apiUrl}/${endpoint}/${encodeURIComponent(id)}?token=${encodeURIComponent(this.token)}`,
     );
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw requestFailed(response.status, await errorDetail(response));
     }
     const data = await response.json();
     if (data.status === "fejl") {
-      throw new Error(data.beskrivelse);
+      throw requestFailed(response.status, data.beskrivelse);
     }
     return data;
   }
