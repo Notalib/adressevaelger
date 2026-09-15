@@ -59,8 +59,12 @@ export class AdresseSearchInput extends HTMLElementBase {
   // Not `style`: a class field is an own property of the instance, and under
   // that name it hid the CSSStyleDeclaration every element inherits, so any
   // write to element.style on this one threw.
+  //
+  // The element itself is found through its list rather than by id: the id is
+  // the author's when they gave one, and the list is there from the moment the
+  // stylesheet is. The specificity is the same as the #id it replaces.
   styleText = `
-    #${this.elementId} {
+    :has(> #${this.elementId}-list) {
       --highlight-color: lightblue;
       max-width: 30rem;
       width: 100%;
@@ -137,7 +141,11 @@ export class AdresseSearchInput extends HTMLElementBase {
   }
 
   connectedCallback() {
-    this.id = this.elementId;
+    // Only when the author gave none: overwriting theirs broke every
+    // getElementById, #id rule and <label for> that pointed at the element.
+    if (!this.id) {
+      this.id = this.elementId;
+    }
     this.attachStyle();
     this.renderList();
   }
