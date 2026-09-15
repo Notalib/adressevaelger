@@ -128,6 +128,27 @@ for (const { label, input } of versions) {
     expect(arrows, "closed, then open").toEqual([false, true]);
   });
 
+  test(`${label}: an emptied field cannot be navigated or selected from`, async ({
+    page,
+  }) => {
+    await gotoFixture(page);
+    const field = combobox(page);
+
+    await field.pressSequentially("Vej");
+    await options(page).first().waitFor();
+
+    // The other way a list goes away: the suggestions are still the previous
+    // query's, and arrowing into them would select an address for text the
+    // user has deleted.
+    await field.fill("");
+    await page.waitForTimeout(500);
+
+    await page.keyboard.press("ArrowDown");
+    await expect(activeOption(page)).toHaveCount(0);
+    await page.keyboard.press("Enter");
+    await expect(field).toHaveValue("");
+  });
+
   test(`${label}: a dismissed list cannot be navigated or selected from`, async ({
     page,
   }) => {

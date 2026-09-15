@@ -101,6 +101,23 @@ export class AdresseSearchInput extends HTMLElementBase {
       li:hover {
         background-color: var(--highlight-color);
       }
+      /* The active option used to be the focused element, so the browser drew
+         its own focus ring on it. With focus kept in the text field nothing
+         did, and this version styled nothing for the active option at all:
+         arrowing through the list changed nothing on screen. The outline is
+         inset so that the list's overflow cannot clip it. */
+      li.dawa-selected {
+        background-color: var(--highlight-color);
+        outline: 2px solid #005a9c;
+        outline-offset: -2px;
+      }
+    }
+    /* Forced colours drop the background, which leaves the outline to carry
+       the indicator; Highlight is what the user has chosen for exactly this. */
+    @media (forced-colors: active) {
+      #${this.elementId}-list li.dawa-selected {
+        outline-color: Highlight;
+      }
     }
   `;
 

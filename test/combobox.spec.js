@@ -279,6 +279,44 @@ for (const { label, input, next } of versions) {
     await expect(field).toBeFocused();
   });
 
+  test(`${label}: the active option is visibly marked, not only announced`, async ({
+    page,
+  }) => {
+    await gotoFixture(page);
+    const field = combobox(page);
+
+    await field.pressSequentially("Årh");
+    await options(page).first().waitFor();
+    await page.keyboard.press("ArrowDown");
+
+    // Focus stays in the text field, so no browser focus ring lands on the
+    // option: whatever marks it has to come from the component's own styles.
+    // Read from the option aria-activedescendant points at, so that the test
+    // follows the same element a screen reader would.
+    const seen = await field.evaluate((input) => {
+      const active = document.getElementById(
+        input.getAttribute("aria-activedescendant") ?? "",
+      );
+      const other = [...active.parentElement.querySelectorAll("li")].find(
+        (li) => li !== active,
+      );
+      const read = (el) => {
+        const style = getComputedStyle(el);
+        return {
+          outlineStyle: style.outlineStyle,
+          outlineWidth: parseFloat(style.outlineWidth),
+          background: style.backgroundColor,
+        };
+      };
+      return { active: read(active), other: read(other) };
+    });
+
+    expect(seen.active.outlineStyle).not.toBe("none");
+    expect(seen.active.outlineWidth).toBeGreaterThanOrEqual(2);
+    // And it has to differ from the options around it.
+    expect(seen.active).not.toEqual(seen.other);
+  });
+
   test(`${label}: Enter on an option selects it without submitting the form`, async ({
     page,
   }) => {

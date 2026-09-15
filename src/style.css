@@ -79,3 +79,22 @@
 .adressevaelger-suggestions .adressevaelger-suggestion:hover {
   background: #f0f0f0;
 }
+
+/* The active option used to be the focused element, so the browser drew its
+   own focus ring on it. With focus kept in the text field nothing does, and
+   #f0f0f0 on the list's #fcfcfc is 1.11:1 where WCAG 1.4.11 asks 3:1 of an
+   indicator. The outline is inset so that the list's overflow cannot clip it,
+   and #005a9c against the list is 7.4:1. */
+.adressevaelger-suggestions .adressevaelger-suggestion.dawa-selected {
+  outline: 2px solid #005a9c;
+  outline-offset: -2px;
+}
+
+/* Forced colours drop the background entirely, which is all the active option
+   had. An outline survives, and Highlight is what the user has chosen for
+   exactly this. */
+@media (forced-colors: active) {
+  .adressevaelger-suggestions .adressevaelger-suggestion.dawa-selected {
+    outline-color: Highlight;
+  }
+}
