@@ -90,6 +90,9 @@ const versions = [
 
 for (const { label, input } of versions) {
   const combobox = (page) => page.locator(input);
+  /** Options belonging to this version, not the other one on the page. */
+  const options = (page) =>
+    page.locator(input).locator("xpath=..").getByRole("option");
   /** Regions belonging to this version, not the other one on the page. */
   const region = (page, role) =>
     page.locator(input).locator("xpath=..").locator(`[role=${role}]`);
@@ -125,6 +128,35 @@ for (const { label, input } of versions) {
     ).toHaveLength(1);
   });
 
+  test(`${label}: a failed search closes the list it no longer matches`, async ({
+    page,
+  }) => {
+    await gotoFixture(page, { failOn: "Århu" });
+    const field = combobox(page);
+
+    // Three hits, then a keystroke whose search times out.
+    await field.pressSequentially("Årh");
+    await expect(options(page)).toHaveCount(3);
+    await field.press("u");
+    await expect(region(page, "alert")).toBeVisible();
+
+    // The suggestions were for "Årh", the field says "Århu", and the list is
+    // drawn over the error line: leaving it open hides the message from a
+    // sighted user and offers a screen-reader user the wrong options.
+    await expect(options(page).filter({ visible: true })).toHaveCount(0);
+    await expect(field).toHaveAttribute("aria-expanded", "false");
+
+    const onTop = await region(page, "alert").evaluate((alert) => {
+      const box = alert.getBoundingClientRect();
+      const hit = document.elementFromPoint(
+        box.x + box.width / 2,
+        box.y + box.height / 2,
+      );
+      return alert.contains(hit) || hit === alert;
+    });
+    expect(onTop, "the alert should not be covered by the list").toBe(true);
+  });
+
   test(`${label}: a failure is cleared by the next search that works`, async ({
     page,
   }) => {
@@ -136,7 +168,9 @@ for (const { label, input } of versions) {
     await combobox(page).fill("");
     await combobox(page).pressSequentially("Årh");
 
-    await expect(region(page, "alert")).toBeHidden();
+    // Empty rather than removed: the alert stays in the document so that a
+    // screen reader has a live region to notice changing.
+    await expect(region(page, "alert")).toHaveText("");
     await expect(region(page, "status")).toHaveText(/3/);
   });
 
@@ -157,3 +191,26 @@ for (const { label, input } of versions) {
     expect(box.height).toBeLessThanOrEqual(1);
   });
 }
+
+test("web component: the field stays above its own error line", async ({
+  page,
+}) => {
+  await gotoFixture(page, { failOn: "Årh" });
+  const host = page.locator("adresse-search-input");
+
+  await host.locator("input").pressSequentially("Årh");
+  await expect(page.locator("[role=alert]").last()).toBeVisible();
+
+  // renderInput() runs again on any observed attribute, and by then the
+  // status, alert and list are already children: appending would put the field
+  // below the error line that belongs to it.
+  await host.evaluate((el) => el.setAttribute("placeholder", "Adresse"));
+
+  const order = await host.evaluate((el) => ({
+    first: el.firstElementChild?.tagName.toLowerCase(),
+    inputTop: el.querySelector("input")?.getBoundingClientRect().top,
+    alertTop: el.querySelector("[role=alert]")?.getBoundingClientRect().top,
+  }));
+  expect(order.first).toBe("input");
+  expect(order.inputTop).toBeLessThanOrEqual(order.alertTop);
+});

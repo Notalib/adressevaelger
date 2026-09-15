@@ -65,6 +65,8 @@ export class AdresseSearchUI {
   listId = nextListId();
   /** Index of the option the arrow keys are on, or -1 for the text itself. */
   activeIndex = -1;
+  /** Bumped whenever the failure on screen changes, to drop a stale write. */
+  errorToken = 0;
   /** Cancels the search that is in flight, if there is one. */
   searchController;
 
@@ -87,7 +89,6 @@ export class AdresseSearchUI {
     this.errorElement = document.createElement("p");
     this.errorElement.className = "adressevaelger-error";
     this.errorElement.role = "alert";
-    this.errorElement.hidden = true;
     this.wrapperElement.append(this.statusElement, this.errorElement);
     // The caller owns the input, so the combobox semantics have to be applied
     // to it from here. Written with setAttribute rather than the IDL
@@ -274,20 +275,36 @@ export class AdresseSearchUI {
 
   /** Put a failure on screen, and in front of a screen reader. */
   showError(message) {
-    this.errorElement.textContent = message;
-    this.errorElement.hidden = false;
     // A failure and a result count at the same time would talk over each
     // other, and the count is the stale one.
-    this.statusElement.textContent = "";
+    this.announce("");
+    // The alert stays in the document, empty, rather than being hidden and
+    // unhidden: a live region that appears and fills in one task is the case
+    // screen readers miss, VoiceOver most reliably. What is announced is the
+    // text changing, so a second identical failure has to be cleared first and
+    // written in the next task, or it passes in silence.
+    this.errorElement.textContent = "";
+    const token = ++this.errorToken;
+    setTimeout(() => {
+      if (token === this.errorToken && this.errorElement.isConnected) {
+        this.errorElement.textContent = message;
+      }
+    });
   }
 
   clearError() {
+    // Also cancels a failure that has not been written yet.
+    this.errorToken++;
     this.errorElement.textContent = "";
-    this.errorElement.hidden = true;
   }
 
   errorHandler(err) {
     console.error(err);
+    // The suggestions are for a query that is no longer what the field says,
+    // and the list is positioned over the error line: leaving it open hides
+    // the message from a sighted user and offers a screen-reader user options
+    // that do not match what they typed.
+    this.closeList();
     // The user gets a sentence they can act on; the detail stays in the event
     // and the console for whoever is debugging.
     this.showError(texts.searchFailed);

@@ -54,6 +54,13 @@
   font-size: 0.875em;
 }
 
+/* The alert stays in the document rather than being hidden between failures,
+   so that a screen reader has a live region to notice changing. Empty, it
+   should take up nothing. */
+.adressevaelger-error:empty {
+  margin: 0;
+}
+
 .adressevaelger-suggestions .adressevaelger-suggestion {
   margin: 0;
   list-style: none;
