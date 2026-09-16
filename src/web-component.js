@@ -4,17 +4,25 @@ import { texts } from "./texts.js";
 // file is imported by style.css, so dist/adressevaelger.css carries them for
 // the legacy picker and the component brings its own copy along.
 import sharedStyles from "./shared.css";
+// And the rules that are this version's alone. Both are the same for every
+// instance, so both go into the page once.
+import componentStyles from "./web-component.css";
 
-// One copy per document, however many components there are, and whatever they
-// are named. The id also covers a second copy of the bundle on the page.
-const sharedStyleId = "adressevaelger-shared-styles";
+// One copy of each per document, however many components there are, and
+// whatever they are named. The ids also cover a second copy of the bundle on
+// the page.
+const styleSheets = [
+  ["adressevaelger-shared-styles", sharedStyles],
+  ["adressevaelger-web-component-styles", componentStyles],
+];
 
 let instanceCount = 0;
 
 const defaultPlaceholder = "Søg adresse";
 
-// Ids are interpolated into a stylesheet and into anchor-name, so they have to
-// be unique and usable as CSS identifiers. The counter guarantees uniqueness
+// Ids name this instance's own elements, are pointed at from aria-controls and
+// aria-activedescendant, and go into its anchor name, so they have to be
+// unique and usable as CSS identifiers. The counter guarantees uniqueness
 // within this module; the lookup additionally covers a second copy of the
 // bundle on the same page starting its own count.
 function nextElementId() {
@@ -45,6 +53,8 @@ export class AdresseSearchInput extends HTMLElementBase {
     "api-url",
   ];
   elementId = nextElementId();
+  /** Ties this component's list to this component's field, and no other. */
+  anchorName = `--input-${this.elementId}`;
   disabled = false;
   placeholder = defaultPlaceholder;
   /** Text of the visible label, or null for none. */
@@ -67,48 +77,8 @@ export class AdresseSearchInput extends HTMLElementBase {
   listElement;
   statusElement;
   errorElement;
-  styleElement;
   api;
   token;
-  // Not `style`: a class field is an own property of the instance, and under
-  // that name it hid the CSSStyleDeclaration every element inherits, so any
-  // write to element.style on this one threw.
-  //
-  // The element itself is found through its list rather than by id: the id is
-  // the author's when they gave one, and the list is there from the moment the
-  // stylesheet is. The specificity is the same as the #id it replaces.
-  styleText = `
-    :has(> #${this.elementId}-list) {
-      --highlight-color: lightblue;
-      max-width: 30rem;
-      width: 100%;
-      display: block;
-    }
-    #${this.elementId}-input {
-      anchor-name: --input-${this.elementId};
-      width: 100%;
-      display: block;
-    }
-    #${this.elementId}-list {
-      margin: 0;
-      inset: auto;
-      position-anchor: --input-${this.elementId};
-      position: fixed;
-      left: anchor(left);
-      top: anchor(bottom);
-      right: auto;
-
-      position-try-fallbacks: flip-block;
-
-      /* The highlight is this version's own; its outline, the height cap and
-         what an option is shaped like are in shared.css. */
-      li:hover,
-      li.dawa-selected {
-        background-color: var(--highlight-color);
-      }
-    }
-  `;
-
   constructor() {
     super();
   }
@@ -127,8 +97,6 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.cancelSearch();
     clearTimeout(this.debounceTimer);
     this.debounceTimer = undefined;
-    this.styleElement?.remove();
-    this.styleElement = undefined;
     this.statusElement?.remove();
     this.statusElement = undefined;
     this.errorElement?.remove();
@@ -230,29 +198,21 @@ export class AdresseSearchInput extends HTMLElementBase {
     }
   }
 
-  attachStyle() {
-    this.attachSharedStyle();
-    if (this.styleElement) {
-      return;
-    }
-    this.styleElement = document.createElement("style");
-    this.styleElement.textContent = this.styleText;
-    document.head.append(this.styleElement);
-  }
-
   /**
-   * The shared rules, once per document. This one is not removed when the last
-   * component goes: it belongs to the page, not to an instance, and the next
-   * component to be connected would only put it back.
+   * The stylesheets, once per document. They are not removed when the last
+   * component goes: they belong to the page rather than to an instance, and
+   * the next component to be connected would only put them back.
    */
-  attachSharedStyle() {
-    if (document.getElementById(sharedStyleId)) {
-      return;
+  attachStyle() {
+    for (const [id, text] of styleSheets) {
+      if (document.getElementById(id)) {
+        continue;
+      }
+      const style = document.createElement("style");
+      style.id = id;
+      style.textContent = text;
+      document.head.append(style);
     }
-    const style = document.createElement("style");
-    style.id = sharedStyleId;
-    style.textContent = sharedStyles;
-    document.head.append(style);
   }
 
   renderInput() {
@@ -292,6 +252,10 @@ export class AdresseSearchInput extends HTMLElementBase {
   createInput() {
     this.inputElement = document.createElement("input");
     this.inputElement.id = `${this.elementId}-input`;
+    this.inputElement.className = "adr-wc-input";
+    // The one thing that differs between instances: this field's own anchor
+    // name, which its list positions itself against.
+    this.inputElement.style.setProperty("anchor-name", this.anchorName);
     this.inputElement.type = "search";
     // Written with setAttribute rather than the IDL properties: element.role
     // and element.ariaExpanded reflect, but element.ariaControls and
@@ -345,7 +309,8 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.append(this.statusElement, this.errorElement);
     this.listElement = document.createElement("ul");
     this.listElement.id = `${this.elementId}-list`;
-    this.listElement.className = "adr-suggestions";
+    this.listElement.className = "adr-suggestions adr-wc-list";
+    this.listElement.style.setProperty("position-anchor", this.anchorName);
     this.listElement.popover = "auto";
     this.listElement.role = "listbox";
     this.listElement.ariaLabel = "Søgeresultater";
@@ -537,7 +502,9 @@ export class AdresseSearchInput extends HTMLElementBase {
         return;
       }
       this.errorHandler(
-        new Error(`Failed to load search items: ${err.message}`, { cause: err }),
+        new Error(`Failed to load search items: ${err.message}`, {
+          cause: err,
+        }),
       );
     }
   }
