@@ -75,9 +75,11 @@ test("web component: its stylesheet is still injected", async ({ page }) => {
     );
     return {
       id: el.id,
+      // One stylesheet for every component on the page, rather than one per
+      // instance keyed on its id.
       text: [...document.head.querySelectorAll("style")]
         .map((style) => style.textContent)
-        .find((text) => text?.includes(`#${el.id}-list`)),
+        .find((text) => text?.includes(".adr-wc-list")),
       display: getComputedStyle(el).display,
     };
   });
