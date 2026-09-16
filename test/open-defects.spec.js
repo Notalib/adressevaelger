@@ -524,10 +524,17 @@ test("O. web component: still usable without the Popover API", async ({ page, br
   expect(visible).toBe(3);
 });
 
-// P. the package cannot be imported where there is no DOM
-test("P. package: index.js can be imported in Node without a DOM", async () => {
+// P. the package cannot be imported where there is no DOM. Loads whatever
+// package.json names as the entry (the exports map's "." import condition,
+// else "main"), so it follows the package rather than a fixed file: index.js
+// is the build's entry, not necessarily the consumer's.
+test("P. package: the package entry can be imported in Node without a DOM", async () => {
+  const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8"));
+  const dot = pkg.exports?.["."];
+  const entry = (typeof dot === "string" ? dot : dot?.import ?? dot?.default) ?? pkg.main ?? "index.js";
   // Runs in the Playwright worker process, which has no HTMLElement.
-  await expect(import(pathToFileURL(path.join(ROOT, "index.js")).href)).resolves.toBeDefined();
+  const mod = await import(pathToFileURL(path.join(ROOT, entry)).href);
+  expect(Object.keys(mod).sort()).toEqual(["AdresseSearchAPI", "AdresseSearchInput", "AdresseSearchUI", "adressevaelger", "default"]);
 });
 
 // Q. README quick start links the stylesheet
