@@ -1,7 +1,7 @@
 // @ts-check
 import { test, expect } from "@playwright/test";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -36,6 +36,13 @@ test.skip(
 
 /** @type {string} */
 let consumer;
+
+test.afterAll(() => {
+  // The hook runs for the skipped projects too, which never made one.
+  if (consumer) {
+    rmSync(consumer, { recursive: true, force: true });
+  }
+});
 
 test.beforeAll(async () => {
   test.setTimeout(180_000);
@@ -129,10 +136,16 @@ test("the published files are the bundles, not the sources", () => {
   );
   const files = JSON.parse(listed)[0].files.map((entry) => entry.path);
 
-  expect(files, "the ESM bundle ships").toContain("dist/adressevaelger.esm.js");
-  expect(files, "so does the stylesheet").toContain("dist/adressevaelger.css");
-  expect(
-    files.filter((name) => name.startsWith("src/")),
-    "sources would take the raw .css imports with them",
-  ).toEqual([]);
+  // The whole list, not a few names: a bundle renamed and left behind by an
+  // older build would otherwise be published along with the rest, and the
+  // demo page carries a token of its own.
+  expect(files.sort()).toEqual([
+    "LICENSE",
+    "README.md",
+    "dist/adressevaelger.cjs",
+    "dist/adressevaelger.css",
+    "dist/adressevaelger.esm.js",
+    "dist/adressevaelger.iife.js",
+    "package.json",
+  ]);
 });
