@@ -28,7 +28,10 @@ export const ctxIIFE = await esbuild.context({
 export const ctxCJS = await esbuild.context({
   entryPoints: ["index.js"],
   bundle: true,
-  outfile: "dist/adressevaelger.cjs.js",
+  // .cjs, not .cjs.js: the package is "type": "module", so Node reads a .js
+  // file here as ESM whatever is in it, and a require() of this bundle came
+  // back empty.
+  outfile: "dist/adressevaelger.cjs",
   format: "cjs",
   minify: true,
   keepNames: true,
