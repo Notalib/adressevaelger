@@ -1,3 +1,8 @@
+/* The rules both versions share live in shared.css, which this file imports,
+   so that dist/adressevaelger.css still holds everything the legacy picker
+   needs. What is left here is the legacy look and layout. */
+@import "./shared.css";
+
 .autocomplete-container {
   /* relative position for at de absolut positionerede forslag får korrekt placering.*/
   position: relative;
@@ -13,7 +18,6 @@
 
 .adressevaelger-suggestions {
   margin: 0.3em 0 0 0;
-  padding: 0;
   text-align: left;
   border-radius: 0.3125em;
   background: #fcfcfc;
@@ -22,50 +26,12 @@
   left: 0;
   right: 0;
   z-index: 9999;
-  /* A default search returns 100 results, which is around 3200px of list: with
-     nothing to scroll within, overflow-y had nothing to do and the list simply
-     covered the page from the field downwards. The cap matches the web
-     component's. Override it by loading your own rule for this class after
-     adressevaelger.css. */
-  max-height: 50vh;
-  overflow-y: auto;
+  /* The 50vh cap and its scrolling are in shared.css. Override them by
+     loading your own rule for this class after adressevaelger.css. */
   box-sizing: border-box;
 }
 
-/* Announced but not drawn: the result count and "no hits" are for a screen
-   reader, since a sighted user can see the list appear or stay away. */
-.adressevaelger-status {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  border: 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-/* A failed search is the one message everyone needs, so it is on screen too.
-   #b00020 on the page background clears WCAG 1.4.3 at this size. */
-.adressevaelger-error {
-  margin: 0.3em 0 0 0;
-  color: #b00020;
-  font-size: 0.875em;
-}
-
-/* The alert stays in the document rather than being hidden between failures,
-   so that a screen reader has a live region to notice changing. Empty, it
-   should take up nothing. */
-.adressevaelger-error:empty {
-  margin: 0;
-}
-
 .adressevaelger-suggestions .adressevaelger-suggestion {
-  margin: 0;
-  list-style: none;
-  cursor: pointer;
-  padding: 0.4em 0.6em;
   color: #333;
   border: 0.0625em solid #ddd;
   border-bottom-width: 0;
@@ -87,21 +53,6 @@
   background: #f0f0f0;
 }
 
-/* The active option used to be the focused element, so the browser drew its
-   own focus ring on it. With focus kept in the text field nothing does, and
-   #f0f0f0 on the list's #fcfcfc is 1.11:1 where WCAG 1.4.11 asks 3:1 of an
-   indicator. The outline is inset so that the list's overflow cannot clip it,
-   and #005a9c against the list is 7.4:1. */
-.adressevaelger-suggestions .adressevaelger-suggestion.dawa-selected {
-  outline: 2px solid #005a9c;
-  outline-offset: -2px;
-}
-
-/* Forced colours drop the background entirely, which is all the active option
-   had. An outline survives, and Highlight is what the user has chosen for
-   exactly this. */
-@media (forced-colors: active) {
-  .adressevaelger-suggestions .adressevaelger-suggestion.dawa-selected {
-    outline-color: Highlight;
-  }
-}
+/* The active option's outline, and what forced colours do to it, are in
+   shared.css: #005a9c on this list is 7.4:1, where the #f0f0f0 background
+   alone is 1.11:1 on #fcfcfc. */

@@ -84,10 +84,10 @@ export class AdresseSearchUI {
     // assertive, and on screen as well, because it is the one the user has to
     // act on.
     this.statusElement = document.createElement("div");
-    this.statusElement.className = "adressevaelger-status";
+    this.statusElement.className = "adressevaelger-status adr-status";
     this.statusElement.role = "status";
     this.errorElement = document.createElement("p");
-    this.errorElement.className = "adressevaelger-error";
+    this.errorElement.className = "adressevaelger-error adr-error";
     this.errorElement.role = "alert";
     this.wrapperElement.append(this.statusElement, this.errorElement);
     // The caller owns the input, so the combobox semantics have to be applied
@@ -241,7 +241,7 @@ export class AdresseSearchUI {
     this.announce(texts.results(items.length));
     const ulEl = document.createElement("ul");
     ulEl.id = this.listId;
-    ulEl.className = "adressevaelger-suggestions";
+    ulEl.className = "adressevaelger-suggestions adr-suggestions";
     ulEl.role = "listbox";
     ulEl.ariaLabel = "Søgeresultater";
     // Firefox puts scrollable containers in the tab order on their own, so the
@@ -264,7 +264,7 @@ export class AdresseSearchUI {
   renderDOMListItem(parentElement, item, index) {
     const liEl = document.createElement("li");
     liEl.id = `${this.listId}-option-${index}`;
-    liEl.className = "adressevaelger-suggestion";
+    liEl.className = "adressevaelger-suggestion adr-suggestion";
     liEl.role = "option";
     // Suggestions are moved through with the arrow keys, not with Tab: a search
     // returns up to 100 of them, and at tabindex="0" every one is a tab stop
