@@ -33,6 +33,22 @@ function nextElementId() {
   return id;
 }
 
+// The list is a popover, placed against its field with CSS anchor
+// positioning. Both are needed for the list to end up anywhere sensible: a
+// popover the engine cannot anchor opens in the middle of the screen. Where
+// either is missing — Safari and iOS 16 and older, Chrome before 125, Firefox
+// before 148 — the list is an ordinary absolutely positioned box below the
+// field instead, which is how the legacy picker has always done it.
+//
+// Measured once: what a browser supports does not change under it.
+const usesPopover =
+  typeof HTMLElement !== "undefined" &&
+  "showPopover" in HTMLElement.prototype &&
+  typeof CSS !== "undefined" &&
+  typeof CSS.supports === "function" &&
+  CSS.supports("position-anchor: --a") &&
+  CSS.supports("top: anchor(bottom)");
+
 // Fall back to a plain class outside browser-like environments (SSR, Node,
 // Jest/Vitest without jsdom) so importing this module doesn't throw just
 // because HTMLElement isn't defined there.
@@ -176,7 +192,7 @@ export class AdresseSearchInput extends HTMLElementBase {
       await this.refreshList(item.titel);
     } else {
       await this.selectItem(item);
-      this.listElement.hidePopover();
+      this.closeList();
     }
   }
 
@@ -311,7 +327,12 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.listElement.id = `${this.elementId}-list`;
     this.listElement.className = "adr-suggestions adr-wc-list";
     this.listElement.style.setProperty("position-anchor", this.anchorName);
-    this.listElement.popover = "auto";
+    if (usesPopover) {
+      this.listElement.popover = "auto";
+    } else {
+      this.listElement.classList.add("adr-wc-inline");
+      this.listElement.hidden = true;
+    }
     this.listElement.role = "listbox";
     this.listElement.ariaLabel = "Søgeresultater";
     // The list scrolls at max-height: 50vh, and Firefox puts scrollable
@@ -323,23 +344,80 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.listElement.addEventListener("mousedown", (event) =>
       event.preventDefault(),
     );
-    // The popover also closes on its own, when the user presses Escape or
-    // clicks outside it. beforetoggle is where that is noticed, so the
-    // combobox state follows a light dismiss as well as our own calls.
-    this.listElement.addEventListener("beforetoggle", (event) => {
-      if (event.newState === "open") {
-        return;
-      }
-      this.setActive(-1);
-      this.inputElement?.setAttribute("aria-expanded", "false");
-      // Hiding a popover leaves its contents in the DOM, which would let the
-      // arrow keys walk a list nobody can see and Enter select from it.
-      // Emptying it here means "the list holds options only while it is open"
-      // holds for this version too, as it always has for the legacy one, and
-      // every check can simply ask the options rather than track a flag.
-      this.listElement.replaceChildren();
-    });
+    // A popover also closes on its own, when the user presses Escape or clicks
+    // outside it. beforetoggle is where that is noticed, so the combobox state
+    // follows a light dismiss as well as our own calls. Without the API there
+    // is nothing to dismiss the list but us, and closeList does this itself.
+    if (usesPopover) {
+      this.listElement.addEventListener("beforetoggle", (event) => {
+        if (event.newState !== "open") {
+          this.afterClose();
+        }
+      });
+    }
     this.append(this.listElement);
+  }
+
+  /**
+   * Open the list. With the Popover API it goes into the top layer, which no
+   * ancestor can clip and nothing on the page can cover. Without it, the list
+   * is shown where it sits and placed by hand.
+   */
+  openList() {
+    if (usesPopover) {
+      this.listElement.showPopover();
+      return;
+    }
+    this.listElement.hidden = false;
+    this.placeList();
+  }
+
+  /** Close it, and put the component back the way a closed list leaves it. */
+  closeList() {
+    if (!this.listElement) {
+      return;
+    }
+    if (usesPopover) {
+      // beforetoggle runs afterClose, for our own calls and a light dismiss
+      // alike.
+      this.listElement.hidePopover();
+      return;
+    }
+    if (this.listElement.hidden) {
+      return;
+    }
+    this.listElement.hidden = true;
+    this.listElement.classList.remove("adr-wc-above");
+    this.afterClose();
+  }
+
+  /**
+   * What a closed list leaves behind. Hiding it keeps its contents, which
+   * would let the arrow keys walk a list nobody can see and Enter select from
+   * it, so the options go: "the list holds options only while it is open"
+   * holds for this version too, as it always has for the legacy one, and every
+   * check can ask the options rather than track a flag.
+   */
+  afterClose() {
+    this.setActive(-1);
+    this.inputElement?.setAttribute("aria-expanded", "false");
+    this.listElement.replaceChildren();
+  }
+
+  /**
+   * Above the field rather than below it, when the list would otherwise run
+   * off the bottom of the window and there is room above. This is what
+   * position-try-fallbacks does for the popover; without anchor positioning
+   * there is nothing that can do it in CSS alone.
+   */
+  placeList() {
+    const field = this.inputElement.getBoundingClientRect();
+    const height = this.listElement.getBoundingClientRect().height;
+    const fitsBelow = field.bottom + height <= window.innerHeight;
+    this.listElement.classList.toggle(
+      "adr-wc-above",
+      !fitsBelow && height <= field.top,
+    );
   }
 
   /** Say something through the polite live region. */
@@ -381,7 +459,7 @@ export class AdresseSearchInput extends HTMLElementBase {
   }
 
   renderListItems(items) {
-    this.listElement.hidePopover();
+    this.closeList();
     this.listElement.innerHTML = "";
     // A search that returns anything at all clears a failure the user was
     // shown for the last one.
@@ -395,7 +473,7 @@ export class AdresseSearchInput extends HTMLElementBase {
     items.forEach((item, index) => {
       this.listElement.append(this.createListItem(item, index));
     });
-    this.listElement.showPopover();
+    this.openList();
     this.setActive(-1);
     this.inputElement.setAttribute("aria-expanded", "true");
   }
@@ -519,7 +597,7 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.debounceTimer = undefined;
     if (event.target.value === "") {
       this.cancelSearch();
-      this.listElement.hidePopover();
+      this.closeList();
       this.clearError();
       this.announce("");
       return;
@@ -567,7 +645,7 @@ export class AdresseSearchInput extends HTMLElementBase {
         const active = this.optionElements()[this.activeIndex];
         if (active) {
           event.preventDefault();
-          this.listElement.hidePopover();
+          this.closeList();
           this.selectProcessor(JSON.parse(active.dataset.item));
         }
         break;
@@ -576,7 +654,7 @@ export class AdresseSearchInput extends HTMLElementBase {
         if (isOpen) {
           event.preventDefault();
         }
-        this.listElement.hidePopover();
+        this.closeList();
         break;
       default:
       // Nothing
@@ -590,7 +668,7 @@ export class AdresseSearchInput extends HTMLElementBase {
    */
   focusOutHandler(event) {
     if (!this.contains(event.relatedTarget)) {
-      this.listElement.hidePopover();
+      this.closeList();
     }
   }
 
@@ -600,7 +678,7 @@ export class AdresseSearchInput extends HTMLElementBase {
     // and the popover sits over the error line: leaving it open hides the
     // message from a sighted user and offers a screen-reader user options that
     // do not match what they typed.
-    this.listElement?.hidePopover();
+    this.closeList();
     // The user gets a sentence they can act on; the detail stays in the event
     // and the console for whoever is debugging.
     this.showError(texts.searchFailed);

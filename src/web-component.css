@@ -44,3 +44,35 @@
 .adr-wc-list li.dawa-selected {
   background-color: var(--highlight-color);
 }
+
+/* Without the Popover API or CSS anchor positioning, the list is an ordinary
+ * box below the field, placed the way the legacy picker places its own. The
+ * popover's own frame comes from the user agent, so this path draws it.
+ *
+ * Measured against the popover in all three engines, this differs in exactly
+ * two places: an ancestor with overflow: hidden clips it, and a later stacking
+ * context can cover it. Escaping both is what the top layer is for, and no
+ * amount of z-index substitutes for it. Going above the field when there is no
+ * room below is done in placeList(), since position-try-fallbacks needs the
+ * anchor positioning this path does not have.
+ */
+:has(> .adr-wc-list.adr-wc-inline) {
+  position: relative;
+}
+
+.adr-wc-list.adr-wc-inline {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 9999;
+  background: Canvas;
+  color: CanvasText;
+  border: 1px solid #ddd;
+}
+
+.adr-wc-list.adr-wc-inline.adr-wc-above {
+  top: auto;
+  bottom: 100%;
+}

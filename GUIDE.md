@@ -192,6 +192,22 @@ field is named only by its placeholder, which disappears as soon as the user
 types and which some screen readers read only as a hint. Style it with
 `adresse-search-input label`, or whatever name you registered.
 
+### Browser support
+
+Where the browser has the Popover API and CSS anchor positioning — Chrome
+125+, Safari 26+, Firefox 148+ — the suggestion list is a popover in the top
+layer, anchored to the field. Nothing on the page can cover it, no ancestor
+can clip it, and it moves above the field by itself when there is no room
+below.
+
+Older browsers, iOS 16 among them, get an ordinary box below the field
+instead, placed the way the legacy picker places its own list, and moved above
+the field when there is no room below. Two things are then worth knowing, both
+of which apply to the legacy picker as well: an ancestor with
+`overflow: hidden` clips the list, and an element in a later stacking context
+can cover it. If your layout does either, give the component room, or use a
+[Popover API polyfill](https://github.com/oddbird/popover-polyfill).
+
 Attributes:
 
 | Attribute | Legacy option |
