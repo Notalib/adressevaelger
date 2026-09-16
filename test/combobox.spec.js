@@ -348,9 +348,11 @@ for (const { label, input, next } of versions) {
     await options(page).first().click();
     await expect(field).toHaveValue(STREET.titel);
     await expect(field).toBeFocused();
-    await expect(
-      options(page).filter({ hasText: "Århusgade 1" }).first(),
-    ).toBeVisible();
+    // The whole refreshed list, not just an option matching "Århusgade 1":
+    // the list for "Årh" holds "Århusgade 1, st. tv, …" too, so a looser wait
+    // passes against the list that is about to be replaced, and the refresh
+    // then clears the option the arrow keys had just marked.
+    await expect(options(page)).toHaveText(["Århusgade 1", ADDRESS.titel]);
 
     // The arrow keys have to still work, without clicking back into the field.
     await page.keyboard.press("ArrowDown");
