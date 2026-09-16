@@ -12,10 +12,19 @@
     "url": "https://www.klimadatastyrelsen.dk/om-klimadatastyrelsen/kontakt"
   },
   "license": "MIT",
-  "main": "index.js",
+  "main": "./dist/adressevaelger.cjs",
+  "module": "./dist/adressevaelger.esm.js",
+  "exports": {
+    ".": {
+      "import": "./dist/adressevaelger.esm.js",
+      "require": "./dist/adressevaelger.cjs",
+      "default": "./dist/adressevaelger.esm.js"
+    },
+    "./adressevaelger.css": "./dist/adressevaelger.css",
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
   "files": [
-    "index.js",
-    "src/",
     "dist/"
   ],
   "type": "module",
