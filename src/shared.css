@@ -1,0 +1,82 @@
+/* The rules both versions need, in one place.
+ *
+ * The legacy picker gets them through adressevaelger.css, which imports this
+ * file; the web component injects this same text itself, once per page, so it
+ * still needs no stylesheet from the page. Each version keeps what is its own
+ * — the legacy container, background, borders and radii; the component's
+ * popover anchoring, which needs a name per instance — and both set these
+ * classes on the elements described here.
+ *
+ * The names are deliberately not the documented .adressevaelger-* ones. Those
+ * carry the legacy look, and a page that loads adressevaelger.css should not
+ * thereby change how the web component looks.
+ */
+
+/* Announced but not drawn: the result count and "no hits" are for a screen
+   reader, since a sighted user can see the list appear or stay away. */
+.adr-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A failed search is the one message everyone needs, so it is on screen too.
+   #b00020 on the page background clears WCAG 1.4.3 at this size. */
+.adr-error {
+  margin: 0.3em 0 0 0;
+  color: #b00020;
+  font-size: 0.875em;
+}
+
+/* The alert stays in the document rather than being hidden between failures,
+   so that a screen reader has a live region to notice changing. Empty, it
+   should take up nothing. */
+.adr-error:empty {
+  margin: 0;
+}
+
+/* A default search returns 100 results, which is around 3200px of list: with
+   nothing to scroll within, the list simply covers the page from the field
+   downwards. */
+.adr-suggestions {
+  padding: 0;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+/* A bare line of text is 18px at the default font size, under the 24px
+   WCAG 2.5.8 asks of a target, and the options are stacked with no spacing
+   between them, so the spacing exception does not apply. min-height keeps the
+   floor when the page's font is small enough for 0.4em not to reach it. */
+.adr-suggestion {
+  margin: 0;
+  list-style: none;
+  cursor: pointer;
+  padding: 0.4em 0.6em;
+  min-height: 24px;
+  box-sizing: border-box;
+}
+
+/* The active option used to be the focused element, so the browser drew its
+   own focus ring on it. With focus kept in the text field nothing does, and
+   a background alone is around 1.1:1 where WCAG 1.4.11 asks 3:1 of an
+   indicator. The outline is inset so that a list's overflow cannot clip it,
+   and #005a9c against either list is over 7:1. */
+.adr-suggestion.dawa-selected {
+  outline: 2px solid #005a9c;
+  outline-offset: -2px;
+}
+
+/* Forced colours drop the background, which leaves the outline to carry the
+   indicator; Highlight is what the user has chosen for exactly this. */
+@media (forced-colors: active) {
+  .adr-suggestion.dawa-selected {
+    outline-color: Highlight;
+  }
+}

@@ -7,6 +7,9 @@ export const ctxESM = await esbuild.context({
   format: "esm",
   minify: true,
   keepNames: true,
+  // The component ships the shared stylesheet inside the bundle and injects
+  // it itself, so a .css import here is text, not a stylesheet to build.
+  loader: { ".css": "text" },
 });
 
 export const ctxIIFE = await esbuild.context({
@@ -17,6 +20,9 @@ export const ctxIIFE = await esbuild.context({
   format: "iife",
   minify: true,
   keepNames: true,
+  // The component ships the shared stylesheet inside the bundle and injects
+  // it itself, so a .css import here is text, not a stylesheet to build.
+  loader: { ".css": "text" },
 });
 
 export const ctxCJS = await esbuild.context({
@@ -26,6 +32,9 @@ export const ctxCJS = await esbuild.context({
   format: "cjs",
   minify: true,
   keepNames: true,
+  // The component ships the shared stylesheet inside the bundle and injects
+  // it itself, so a .css import here is text, not a stylesheet to build.
+  loader: { ".css": "text" },
 });
 
 // The demo page is source, not output: it is written by hand and copied into

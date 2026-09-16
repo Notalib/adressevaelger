@@ -319,6 +319,15 @@ fails. Both are styled by `adressevaelger.css` — `.adressevaelger-status` and
 `.adressevaelger-error` — so restyle the error line there if it should look
 like the rest of your form. The wording lives in `src/texts.js`.
 
+Both versions also set `adr-status`, `adr-error`, `adr-suggestions` and
+`adr-suggestion` on those elements. The rules they have in common — the hidden
+status region, the error line, the height cap on the list, and the size and
+active-option outline of a suggestion — are written once, against those
+classes, in `src/shared.css`. `adressevaelger.css` contains them, so there is
+nothing extra to load, and the web component brings its own copy along. The
+`.adressevaelger-*` classes above carry the legacy look and are the ones to
+target when restyling it.
+
 It also sets `autocomplete="off"`, as dawa-autocomplete2 did. Without it the
 browser opens its own history dropdown over the suggestion list and takes the
 keys meant for it — in Firefox, an input that has been submitted in a form
