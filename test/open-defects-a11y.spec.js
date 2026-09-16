@@ -39,7 +39,7 @@ const FIXTURE_HTML = `<!doctype html>
 <body>
   <label for="legacy">Adresse (legacy)</label>
   <div class="autocomplete-container"><input type="search" id="legacy" /></div>
-  <adresse-search-input token="adressevaelger123"></adresse-search-input>
+  <adresse-search-input token="adressevaelger123" label="Søg efter adresser"></adresse-search-input>
   <script type="module">
     import * as lib from "./adressevaelger.esm.js";
     customElements.define("adresse-search-input", lib.AdresseSearchInput);
@@ -91,7 +91,8 @@ const statusText = (page) =>
       .filter(Boolean),
   );
 
-test("R. web component: the input has an accessible name that is not just its placeholder", async ({ page }) => {
+// R. The resolution (#48) is a `label` attribute on the element; the fixture sets one.
+test("R. web component: a label attribute names the input, not just its placeholder", async ({ page }) => {
   await gotoFixture(page);
   const naming = await wcInput(page).evaluate((input) => ({
     labels: input.labels.length,

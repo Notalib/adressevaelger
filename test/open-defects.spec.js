@@ -281,18 +281,21 @@ test("E4. web component: removing medtag-foreloebige stops sending it", async ({
   expect(log[0]).not.toContain("medtagForeloebige=true");
 });
 
-test("E5. web component: vejnavn / postnummer attributes from the demo are honoured", async ({ page, browserName }) => {
+// E5. The service ignores vejnavn and postnummer whenever tekst is sent (#20,
+// #47), so the resolution is that neither version sends them, even when given.
+test("E5. legacy: vejnavn / postnummer are not sent alongside tekst", async ({ page, browserName }) => {
   await gotoFixture(page);
   const log = await stubAPI(page);
   await page.evaluate(() => {
-    const el = document.querySelector("adresse-search-input");
-    el.setAttribute("vejnavn", "Århusgade");
-    el.setAttribute("postnummer", "2100");
+    window.picker2 = window.lib.adressevaelger(document.getElementById("after-legacy"), {
+      token: "adressevaelger123", vejnavn: "Århusgade", postnummer: "2100", select() {},
+    });
   });
-  await wcInput(page).pressSequentially("Årh");
+  await page.locator("#after-legacy").pressSequentially("Årh");
   await page.getByRole("option", { name: "Århusgade", exact: true }).waitFor();
   console.log(`[${browserName}] E5: ${JSON.stringify(log)}`);
-  expect(log[0]).toContain("vejnavn=");
+  expect(log[0]).not.toContain("vejnavn=");
+  expect(log[0]).not.toContain("postnummer=");
 });
 
 // F. ArrowDown with nothing to move to
@@ -377,7 +380,9 @@ for (const [label, getInput] of [
     expect(afterLeaf).toMatch(/^input#/);
   });
 
-  test(`I2. ${label}: focus returns to the input after a keyboard selection`, async ({ page, browserName }) => {
+  // I2. Keyboard selection under the combobox model (#7, #9, #10): focus stays in
+  // the input throughout, the arrow keys mark the active option, Enter selects it.
+  test(`I2. ${label}: keyboard selection keeps focus in the input and selects the active option`, async ({ page, browserName }) => {
     await gotoFixture(page);
     await stubAPI(page);
     const input = getInput(page);
@@ -386,7 +391,8 @@ for (const [label, getInput] of [
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("ArrowDown");
-    await expect(page.getByRole("option", { name: LEAF.titel })).toBeFocused();
+    await expect(input).toBeFocused();
+    await expect(page.getByRole("option", { name: LEAF.titel })).toHaveAttribute("aria-selected", "true");
     await page.keyboard.press("Enter");
     await expect(input).toHaveValue(LEAF.titel);
     const focused = await active(page);
@@ -486,14 +492,18 @@ test("N. web component: holding ArrowDown (3 repeated keydowns) moves three opti
   await stubAPI(page);
   await wcInput(page).pressSequentially("Vej");
   await page.getByRole("option", { name: "Vej 100", exact: true }).waitFor();
-  await page.keyboard.press("ArrowDown"); // into the list
+  await page.keyboard.press("ArrowDown"); // onto the first option
   await page.keyboard.down("ArrowDown");
   await page.keyboard.down("ArrowDown");
   await page.keyboard.down("ArrowDown");
   await page.keyboard.up("ArrowDown");
-  const focused = await page.evaluate(() => document.activeElement.textContent);
-  console.log(`[${browserName}] N: focused after 3 held keydowns + 1 keyup = "${focused}"`);
-  expect(focused).toBe("Vej 4");
+  const activeText = await page.evaluate(() => {
+    const input = document.querySelector("adresse-search-input input");
+    const id = input.getAttribute("aria-activedescendant");
+    return id ? document.getElementById(id)?.textContent : document.activeElement.textContent;
+  });
+  console.log(`[${browserName}] N: active option after 3 held keydowns + 1 keyup = "${activeText}"`);
+  expect(activeText).toBe("Vej 4");
 });
 
 // O. web component in a browser without the Popover API (Safari ≤ 16, Firefox ≤ 124)
