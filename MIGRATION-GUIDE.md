@@ -171,6 +171,18 @@ Option 2: Inline CSS
     </style>
    ```
 
+## autocomplete on your input
+
+dawa-autocomplete2 set `autocomplete="off"` on the input you passed it, and
+adressevaelger does the same, so there is nothing to change on your side. It
+matters: without it the browser opens its own history dropdown over the
+suggestion list and takes the keys meant for it — in Firefox, an input that has
+been submitted in a form before gets a dropdown that swallows Enter.
+
+If your markup sets `autocomplete` on that input, the component overrides it.
+Set it again after `adressevaelger()` returns if you would rather keep your own
+value, and expect the browser's list and the suggestion list to compete.
+
 ## Improve HTML accessibility
 
 To conform to requiremetns for accessibility, you should add a `<label>`-element for the search input field. You can place it anywhere you like if you use the `for` attribute to link it to the search input like in the example below.

@@ -84,18 +84,20 @@ export class AdresseSearchUI {
     this.inputElement.setAttribute("aria-autocomplete", "list");
     this.inputElement.setAttribute("aria-controls", this.listId);
     this.inputElement.setAttribute("aria-expanded", "false");
+    // Without this the browser opens its own history dropdown over the
+    // suggestions, and takes the keys meant for them: in firefox, once the
+    // field has been submitted in a form, Enter is consumed by that dropdown
+    // and never reaches the listbox. Set unconditionally, as
+    // dawa-autocomplete2 did on the caller's input, so that a site following
+    // the migration guide does not lose the behaviour it already had.
+    this.inputElement.setAttribute("autocomplete", "off");
     const { signal } = this.abortController;
     this.inputElement.addEventListener("input", this.inputHandler.bind(this), {
       signal,
     });
     this.wrapperElement.addEventListener(
-      "keyup",
-      this.listKeyHandler.bind(this),
-      { signal },
-    );
-    this.wrapperElement.addEventListener(
       "keydown",
-      this.keyDownHandler.bind(this),
+      this.listKeyHandler.bind(this),
       { signal },
     );
     this.wrapperElement.addEventListener(
@@ -252,37 +254,43 @@ export class AdresseSearchUI {
     );
   }
 
+  /**
+   * Navigation runs on keydown. On keyup it ignored auto-repeat, so holding an
+   * arrow key moved exactly one option out of a hundred, and it was too late
+   * to cancel what these keys do by default — the caret jumping to the end of
+   * the text, an <input type="search"> emptying itself on Escape, and an
+   * enclosing <form> submitting on Enter.
+   *
+   * Each default is only cancelled where the key is the component's: with a
+   * list open, or with an option active. Enter with nothing active still
+   * submits the form, and Escape with no list still reaches the field and any
+   * dialog around it.
+   */
   listKeyHandler(event) {
+    const isOpen = this.optionElements().length > 0;
     if (event.key === "ArrowDown") {
+      if (!isOpen) {
+        return;
+      }
+      event.preventDefault();
       this.moveActive(1);
     } else if (event.key === "ArrowUp") {
+      if (!isOpen) {
+        return;
+      }
+      event.preventDefault();
       this.moveActive(-1);
     } else if (event.key === "Enter") {
       const active = this.optionElements()[this.activeIndex];
       if (active) {
+        event.preventDefault();
         this.selectProcessor(JSON.parse(active.dataset.item));
       }
     } else if (event.key === "Escape") {
+      if (isOpen) {
+        event.preventDefault();
+      }
       this.closeList();
-    }
-  }
-
-  /**
-   * An <input type="search"> empties itself when Escape is pressed, which
-   * would throw away what the user typed just to close the suggestions.
-   * Navigation runs on keyup, too late to prevent that, so the default is
-   * cancelled here while there is a list for Escape to close.
-   */
-  keyDownHandler(event) {
-    if (event.key === "Escape" && this.optionElements().length > 0) {
-      event.preventDefault();
-    }
-    // Enter belongs to the component while an option is active. DOM focus is
-    // in the text field now, so an enclosing <form> would otherwise submit on
-    // implicit submission — before keyup gets to select anything, and taking
-    // the half-typed text with it.
-    if (event.key === "Enter" && this.activeIndex >= 0) {
-      event.preventDefault();
     }
   }
 

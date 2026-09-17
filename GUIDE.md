@@ -199,3 +199,17 @@ Access token - [Learn how to get one at confluence.sdfi.dk](https://confluence.s
 default: `https://adressevaelger.dk`
 
 Point to a different API
+
+## What the component sets on your input
+
+The legacy `adressevaelger()` is handed an input you own, and turns it into an
+ARIA combobox: it sets `role`, `aria-autocomplete`, `aria-controls` and
+`aria-expanded`, and points `aria-activedescendant` at the suggestion the arrow
+keys are on.
+
+It also sets `autocomplete="off"`, as dawa-autocomplete2 did. Without it the
+browser opens its own history dropdown over the suggestion list and takes the
+keys meant for it — in Firefox, an input that has been submitted in a form
+before gets a dropdown that swallows Enter. If you need a different value, set
+it on the input after `adressevaelger()` returns, and expect the two lists to
+compete.

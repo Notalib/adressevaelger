@@ -44,8 +44,6 @@ export class AdresseSearchInput extends HTMLElementBase {
   debounceTimer;
   /** Index of the option the arrow keys are on, or -1 for the text itself. */
   activeIndex = -1;
-  /** Whether the popover is showing; its contents outlive it being hidden. */
-  listOpen = false;
   /** Cancels the search that is in flight, if there is one. */
   searchController;
   inputElement;
@@ -229,16 +227,17 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.inputElement.setAttribute("aria-autocomplete", "list");
     this.inputElement.setAttribute("aria-controls", `${this.elementId}-list`);
     this.inputElement.setAttribute("aria-expanded", "false");
+    // Without this the browser opens its own history dropdown over the
+    // suggestions, and takes the keys meant for them: in firefox, once the
+    // field has been submitted in a form, Enter is consumed by that dropdown
+    // and never reaches the listbox.
+    this.inputElement.setAttribute("autocomplete", "off");
     this.inputElement.placeholder = this.placeholder;
     this.inputElement.disabled = this.disabled;
     this.inputElement.addEventListener("input", this.inputHandler.bind(this));
     this.inputElement.addEventListener(
-      "keyup",
-      this.inputKeyHandler.bind(this),
-    );
-    this.inputElement.addEventListener(
       "keydown",
-      this.keyDownHandler.bind(this),
+      this.inputKeyHandler.bind(this),
     );
     this.inputElement.addEventListener(
       "focusout",
@@ -269,13 +268,17 @@ export class AdresseSearchInput extends HTMLElementBase {
     // clicks outside it. beforetoggle is where that is noticed, so the
     // combobox state follows a light dismiss as well as our own calls.
     this.listElement.addEventListener("beforetoggle", (event) => {
-      // Hiding a popover leaves its contents in the DOM, so whether the list
-      // is open is not a question the options can answer.
-      this.listOpen = event.newState === "open";
-      if (!this.listOpen) {
-        this.setActive(-1);
-        this.inputElement?.setAttribute("aria-expanded", "false");
+      if (event.newState === "open") {
+        return;
       }
+      this.setActive(-1);
+      this.inputElement?.setAttribute("aria-expanded", "false");
+      // Hiding a popover leaves its contents in the DOM, which would let the
+      // arrow keys walk a list nobody can see and Enter select from it.
+      // Emptying it here means "the list holds options only while it is open"
+      // holds for this version too, as it always has for the legacy one, and
+      // every check can simply ask the options rather than track a flag.
+      this.listElement.replaceChildren();
     });
     this.append(this.listElement);
   }
@@ -420,45 +423,56 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.debounceTimer = setTimeout(() => this.refreshList(query), 300);
   }
 
+  /**
+   * Navigation runs on keydown. On keyup it ignored auto-repeat, so holding an
+   * arrow key moved exactly one option out of a hundred, and it was too late
+   * to cancel what these keys do by default — the caret jumping to the end of
+   * the text, an <input type="search"> emptying itself on Escape, and an
+   * enclosing <form> submitting on Enter.
+   *
+   * Each default is only cancelled where the key is the component's: with the
+   * list open, or with an option active. Enter with nothing active still
+   * submits the form, and Escape with the list closed still reaches the field
+   * and any dialog around it.
+   *
+   * Whether the list is open is read from the options themselves, which the
+   * popover empties as it closes, rather than from a flag that has to be kept
+   * in step with it.
+   */
   inputKeyHandler(event) {
+    const isOpen = this.optionElements().length > 0;
     switch (event.key) {
       case "ArrowUp":
+        if (!isOpen) {
+          break;
+        }
+        event.preventDefault();
         this.moveActive(-1);
         break;
       case "ArrowDown":
+        if (!isOpen) {
+          break;
+        }
+        event.preventDefault();
         this.moveActive(1);
         break;
       case "Enter": {
         const active = this.optionElements()[this.activeIndex];
         if (active) {
+          event.preventDefault();
           this.listElement.hidePopover();
           this.selectProcessor(JSON.parse(active.dataset.item));
         }
         break;
       }
       case "Escape":
+        if (isOpen) {
+          event.preventDefault();
+        }
         this.listElement.hidePopover();
         break;
       default:
       // Nothing
-    }
-  }
-
-  /**
-   * An <input type="search"> empties itself when Escape is pressed, which
-   * would throw away what the user typed just to close the suggestions.
-   * Navigation runs on keyup, too late to prevent that, so the default is
-   * cancelled here while the list is open; inputKeyHandler still closes it.
-   */
-  keyDownHandler(event) {
-    if (event.key === "Escape" && this.listOpen) {
-      event.preventDefault();
-    }
-    // Enter belongs to the component while an option is active. DOM focus is
-    // in the text field now, so an enclosing <form> would otherwise submit on
-    // implicit submission — before keyup gets to select anything.
-    if (event.key === "Enter" && this.activeIndex >= 0) {
-      event.preventDefault();
     }
   }
 
