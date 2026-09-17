@@ -208,6 +208,10 @@ export class AdresseSearchInput extends HTMLElement {
     this.listElement.popover = "auto";
     this.listElement.role = "listbox";
     this.listElement.ariaLabel = "Søgeresultater";
+    // The list scrolls at max-height: 50vh, and Firefox puts scrollable
+    // containers in the tab order on their own. An explicit -1 keeps it
+    // reachable by script and out of the tab sequence.
+    this.listElement.tabIndex = -1;
     this.listElement.addEventListener("keyup", this.listKeyHandler.bind(this));
     this.append(this.listElement);
   }
@@ -223,7 +227,11 @@ export class AdresseSearchInput extends HTMLElement {
 
   createListItem(item) {
     const liElement = document.createElement("li");
-    liElement.tabIndex = 0;
+    // Suggestions are moved through with the arrow keys, not with Tab: a search
+    // returns up to 100 of them, and at tabindex="0" every one is a tab stop
+    // between the field and the next control. -1 keeps inputKeyHandler() and
+    // moveFocus() working, since both focus options by script.
+    liElement.tabIndex = -1;
     liElement.role = "option";
     liElement.innerText = item.titel;
     liElement.dataset.item = JSON.stringify(item);
