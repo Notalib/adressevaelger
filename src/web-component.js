@@ -229,7 +229,9 @@ export class AdresseSearchInput extends HTMLElementBase {
         }),
       );
     } catch (err) {
-      this.errorHandler(new Error(`Failed to fetch items: ${err.message}`));
+      this.errorHandler(
+        new Error(`Failed to fetch items: ${err.message}`, { cause: err }),
+      );
     }
   }
 
@@ -491,7 +493,7 @@ export class AdresseSearchInput extends HTMLElementBase {
         return;
       }
       this.errorHandler(
-        new Error(`Failed to load search items: ${err.message}`),
+        new Error(`Failed to load search items: ${err.message}`, { cause: err }),
       );
     }
   }
@@ -595,7 +597,14 @@ export class AdresseSearchInput extends HTMLElementBase {
       new CustomEvent("address:error", {
         bubbles: true,
         composed: true,
-        detail: { message: err.message },
+        // status and detail come from the API's own answer, so that an
+        // integrator can tell a 504 worth retrying from a 400 about their
+        // configuration without reading the message.
+        detail: {
+          message: err.message,
+          status: err.cause?.status,
+          detail: err.cause?.detail,
+        },
       }),
     );
   }
