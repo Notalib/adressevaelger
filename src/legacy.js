@@ -124,12 +124,22 @@ export class AdresseSearchUI {
     document.addEventListener("click", this.outsideClickHandler.bind(this), {
       signal,
     });
-    const opt = this.options.apiUrl
-      ? { token: options.token, apiUrl: this.options.apiUrl }
-      : { token: options.token };
-    this.api = new AdresseSearchAPI(opt);
+    this.setToken(options.token);
     this.wasConnected = this.inputElement.isConnected;
     releaseOnDetach(this);
+  }
+
+  /**
+   * Send a different token from the next request on, for when the one the
+   * picker was set up with has expired. The web component does the same when
+   * its token attribute changes. Throws on an empty token, as setup does, and
+   * keeps the token it had.
+   */
+  setToken(token) {
+    const opt = this.options.apiUrl
+      ? { token, apiUrl: this.options.apiUrl }
+      : { token };
+    this.api = new AdresseSearchAPI(opt);
   }
 
   /**
