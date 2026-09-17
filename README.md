@@ -4,15 +4,23 @@ A UI component for implementing Adressevælger search in Javascript applications
 
 # Quick start
 
-The ready-to-use files are available in the dist/ folder in the repository:
+The ready-to-use files are built rather than kept in the repository. Take them
+from the package:
 
-adressevaelger.css
-adressevaelger.iife.js
+```sh
+echo "@notalib:registry=https://npm.pkg.github.com" >> .npmrc
+npm install @notalib/adressevaelger
+```
 
-You can use them directly in your HTML without any build tools.
+and use `node_modules/@notalib/adressevaelger/dist/adressevaelger.iife.js` and
+`adressevaelger.css` directly in your HTML, without any build tools of your own.
 
-Find the files here:
-https://github.com/SDFIdk/adressevaelger/tree/main/dist
+Or build them from a checkout:
+
+```sh
+npm ci && npm run build     # writes dist/
+npm run dev                 # serves the demo page while you work
+```
 
 Copy this example into a .html file to quickly test the component:
 

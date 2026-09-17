@@ -13,17 +13,27 @@ Repository: https://github.com/SDFIdk/adressevaelger
 
 ## Download
 
-Clone or download the repository:
+The bundles are built, not committed, so there is nothing to copy out of the
+repository tree. Install the package:
 
-git clone https://github.com/SDFIdk/adressevaelger.git
+```sh
+echo "@notalib:registry=https://npm.pkg.github.com" >> .npmrc
+npm install @notalib/adressevaelger
+```
 
-Or download it as a ZIP and extract it into your project.
-
-You will typically need:
+Its `dist/` holds what you will typically need:
 
 adressevaelger.iife.js (for direct browser usage)
 adressevaelger.esm.js (for ES module usage)
 adressevaelger.css
+
+Building a checkout yourself gives you the same files:
+
+```sh
+npm ci && npm run build
+```
+
+`npm run dev` rebuilds as you edit and serves the demo page from `demo/`.
 
 
 

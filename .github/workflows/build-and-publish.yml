@@ -107,11 +107,11 @@ jobs:
           node-version: "24"
           registry-url: https://npm.pkg.github.com
 
-      - uses: actions/download-artifact@v8
-        with:
-          name: dist
-          path: dist/
+      - run: npm ci
 
+      # dist is not in the tree: `prepack` builds it during `npm publish`, from
+      # the source at the tag, so a release cannot ship stale or missing
+      # bundles. The build job above has already proved the build works.
       - name: Scope the package to this repository owner
         # GitHub Packages only accepts packages scoped to the owning org/user,
         # so rewrite the unscoped name in package.json just before publishing.

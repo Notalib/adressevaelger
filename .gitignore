@@ -1,5 +1,10 @@
 node_modules
 
+# Build output. The bundles are published to the package registry and attached
+# to releases; they are not kept in the tree, where they made every change a
+# diff of minified JavaScript and every rebase a conflict in it.
+/dist/
+
 # Playwright
 /test-results/
 /playwright-report/

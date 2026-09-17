@@ -43,16 +43,21 @@ If you used the CDN script from dawa-autocomplete2:
 
 The dawa-autocomplete2 package is deprecated and will not receive further updates.
 
-There is no NPM distribution of adressevaelger. Instead, you must install or copy the source files directly from GitHub.
+adressevaelger is published to GitHub Packages, so the dependency is replaced
+rather than removed:
 
-Repository: https://github.com/SDFIdk/adressevaelger
+```sh
+echo "@notalib:registry=https://npm.pkg.github.com" >> .npmrc
+npm install @notalib/adressevaelger
+```
 
-You will typically use one of the following files from the repository:
+You will typically use one of the following from its `dist/`:
 
 adressevaelger.iife.js (browser usage)
 adressevaelger.esm.js (ES module usage)
 
-If your project previously used require() with dawa-autocomplete2, you must remove the dependency and update to the new manual import approach.
+If your project previously used require() with dawa-autocomplete2, note that
+this package is ESM: import it, or load the IIFE build with a script tag.
 
 ```javascript
 /* Old implementation */

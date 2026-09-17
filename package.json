@@ -13,9 +13,15 @@
   },
   "license": "MIT",
   "main": "index.js",
+  "files": [
+    "index.js",
+    "src/",
+    "dist/"
+  ],
   "type": "module",
   "scripts": {
     "build": "node bin/build.js",
+    "prepack": "node bin/build.js",
     "dev": "node bin/dev.js",
     "test": "playwright test",
     "test:live": "ADRESSEVAELGER_LIVE_API=1 playwright test",
