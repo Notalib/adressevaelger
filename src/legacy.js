@@ -33,6 +33,20 @@ function stopWatching(picker) {
   }
 }
 
+let pickerCount = 0;
+
+// The listbox and its options are addressed by id from aria-controls and
+// aria-activedescendant, so those ids have to be unique on the page. The
+// counter guarantees uniqueness within this module; the lookup additionally
+// covers a second copy of the bundle on the same page starting its own count.
+function nextListId() {
+  let id;
+  do {
+    id = `adressevaelger-list-${++pickerCount}`;
+  } while (document.getElementById(id));
+  return id;
+}
+
 export function adressevaelger(element, options) {
   return new AdresseSearchUI(element, options);
 }
@@ -47,6 +61,9 @@ export class AdresseSearchUI {
   api;
   abortController = new AbortController();
   wasConnected = false;
+  listId = nextListId();
+  /** Index of the option the arrow keys are on, or -1 for the text itself. */
+  activeIndex = -1;
 
   constructor(element, options) {
     this.options = options;
@@ -55,6 +72,16 @@ export class AdresseSearchUI {
     this.listElement = document.createElement("div");
     this.wrapperElement = this.inputElement.parentNode;
     this.wrapperElement.append(this.listElement);
+    // The caller owns the input, so the combobox semantics have to be applied
+    // to it from here. Written with setAttribute rather than the IDL
+    // properties: element.ariaControls and element.ariaAutocomplete exist in no
+    // engine (measured on chromium, webkit and firefox), so assigning to them
+    // sets a plain JavaScript property and never reaches the accessibility
+    // tree.
+    this.inputElement.setAttribute("role", "combobox");
+    this.inputElement.setAttribute("aria-autocomplete", "list");
+    this.inputElement.setAttribute("aria-controls", this.listId);
+    this.inputElement.setAttribute("aria-expanded", "false");
     const { signal } = this.abortController;
     this.inputElement.addEventListener("input", this.inputHandler.bind(this), {
       signal,
@@ -62,6 +89,16 @@ export class AdresseSearchUI {
     this.wrapperElement.addEventListener(
       "keyup",
       this.listKeyHandler.bind(this),
+      { signal },
+    );
+    this.wrapperElement.addEventListener(
+      "keydown",
+      this.keyDownHandler.bind(this),
+      { signal },
+    );
+    this.wrapperElement.addEventListener(
+      "focusout",
+      this.focusOutHandler.bind(this),
       { signal },
     );
     document.addEventListener("click", this.outsideClickHandler.bind(this), {
@@ -84,6 +121,9 @@ export class AdresseSearchUI {
     this.abortController.abort();
     clearTimeout(this.debounceTimer);
     this.debounceTimer = undefined;
+    // Before the list goes: the input is the caller's, and it would be left
+    // claiming to be expanded around an element that no longer exists.
+    this.closeList();
     this.listElement.remove();
     stopWatching(this);
   }
@@ -116,7 +156,14 @@ export class AdresseSearchUI {
   }
 
   renderDOMList(parentElement, items) {
+    // A search with no hits used to append an empty list, which drew an empty
+    // box and left the combobox pointing at a popup with nothing in it.
+    if (items.length === 0) {
+      this.closeList();
+      return;
+    }
     const ulEl = document.createElement("ul");
+    ulEl.id = this.listId;
     ulEl.className = "adressevaelger-suggestions";
     ulEl.role = "listbox";
     ulEl.ariaLabel = "Søgeresultater";
@@ -124,21 +171,27 @@ export class AdresseSearchUI {
     // list would become a tab stop as soon as it has a height to scroll within.
     // An explicit -1 keeps it reachable by script and out of the tab sequence.
     ulEl.tabIndex = -1;
-    items.forEach((item) => {
-      this.renderDOMListItem(ulEl, item);
+    // Pressing the mouse on an option would otherwise take focus off the
+    // input, collapsing the list before the click that selects had landed.
+    ulEl.addEventListener("mousedown", (event) => event.preventDefault());
+    items.forEach((item, index) => {
+      this.renderDOMListItem(ulEl, item, index);
     });
     parentElement.querySelector("ul")?.remove();
     parentElement.append(ulEl);
+    this.activeIndex = -1;
+    this.inputElement.removeAttribute("aria-activedescendant");
+    this.inputElement.setAttribute("aria-expanded", "true");
   }
 
-  renderDOMListItem(parentElement, item) {
+  renderDOMListItem(parentElement, item, index) {
     const liEl = document.createElement("li");
+    liEl.id = `${this.listId}-option-${index}`;
     liEl.className = "adressevaelger-suggestion";
     liEl.role = "option";
     // Suggestions are moved through with the arrow keys, not with Tab: a search
     // returns up to 100 of them, and at tabindex="0" every one is a tab stop
-    // between the field and the next control. -1 keeps moveFocus() working,
-    // since it focuses options by script.
+    // between the field and the next control.
     liEl.tabIndex = -1;
     liEl.dataset.item = JSON.stringify(item);
     liEl.addEventListener("click", (event) => {
@@ -161,48 +214,109 @@ export class AdresseSearchUI {
 
   listKeyHandler(event) {
     if (event.key === "ArrowDown") {
-      this.moveFocus(1);
+      this.moveActive(1);
     } else if (event.key === "ArrowUp") {
-      this.moveFocus(-1);
-    } else if (
-      event.key === "Enter" &&
-      this.listElement.querySelector(":focus")
-    ) {
-      this.inputElement.focus();
-      this.selectProcessor(JSON.parse(event.target.dataset.item));
+      this.moveActive(-1);
+    } else if (event.key === "Enter") {
+      const active = this.optionElements()[this.activeIndex];
+      if (active) {
+        this.selectProcessor(JSON.parse(active.dataset.item));
+      }
     } else if (event.key === "Escape") {
-      this.inputElement.focus();
-      this.listElement.querySelector("ul")?.remove();
+      this.closeList();
+    }
+  }
+
+  /**
+   * An <input type="search"> empties itself when Escape is pressed, which
+   * would throw away what the user typed just to close the suggestions.
+   * Navigation runs on keyup, too late to prevent that, so the default is
+   * cancelled here while there is a list for Escape to close.
+   */
+  keyDownHandler(event) {
+    if (event.key === "Escape" && this.optionElements().length > 0) {
+      event.preventDefault();
+    }
+    // Enter belongs to the component while an option is active. DOM focus is
+    // in the text field now, so an enclosing <form> would otherwise submit on
+    // implicit submission — before keyup gets to select anything, and taking
+    // the half-typed text with it.
+    if (event.key === "Enter" && this.activeIndex >= 0) {
+      event.preventDefault();
+    }
+  }
+
+  /**
+   * Close when focus leaves the component. Options cannot take focus — the
+   * list cancels mousedown and none of it is tabbable — so this fires when the
+   * user tabs or clicks away, and not while they are working in the list.
+   */
+  focusOutHandler(event) {
+    if (!this.wrapperElement.contains(event.relatedTarget)) {
+      this.closeList();
     }
   }
 
   outsideClickHandler(event) {
     if (!this.wrapperElement.contains(event.target)) {
-      this.listElement.querySelector("ul")?.remove();
+      this.closeList();
     }
   }
 
-  moveFocus(direction) {
-    if (!this.listElement.querySelector("ul")) {
+  /** The rendered options, in order; empty when the list is closed. */
+  optionElements() {
+    return [...this.listElement.querySelectorAll("li")];
+  }
+
+  /**
+   * Point the combobox at one option, or at the text itself with -1. Nothing
+   * is focused: the input keeps DOM focus throughout, and aria-activedescendant
+   * is what tells a screen reader where the arrow keys have got to.
+   */
+  setActive(index) {
+    const options = this.optionElements();
+    this.activeIndex = index;
+    options.forEach((option, position) => {
+      const isActive = position === index;
+      option.classList.toggle("dawa-selected", isActive);
+      if (isActive) {
+        option.setAttribute("aria-selected", "true");
+      } else {
+        option.removeAttribute("aria-selected");
+      }
+    });
+    const active = options[index];
+    if (active) {
+      this.inputElement.setAttribute("aria-activedescendant", active.id);
+      // Nothing in the list is focused any more, so the list will not scroll
+      // itself to keep up with the arrow keys.
+      active.scrollIntoView({ block: "nearest" });
+    } else {
+      this.inputElement.removeAttribute("aria-activedescendant");
+    }
+  }
+
+  /** Drop the suggestions and report the combobox as collapsed. */
+  closeList() {
+    this.listElement.querySelector("ul")?.remove();
+    this.activeIndex = -1;
+    this.inputElement.removeAttribute("aria-activedescendant");
+    this.inputElement.setAttribute("aria-expanded", "false");
+  }
+
+  /**
+   * Move the active option one step. What was typed is part of the ring, at
+   * -1: arrowing past either end of the list comes back to it, which is where
+   * arrowing up off the first option used to return DOM focus.
+   */
+  moveActive(direction) {
+    const options = this.optionElements();
+    if (options.length === 0) {
       return;
     }
-    const next = this.listElement.querySelector(":focus")?.nextElementSibling;
-    const previous =
-      this.listElement.querySelector(":focus")?.previousElementSibling;
-    const first = this.listElement.querySelector("li");
-    this.listElement.querySelectorAll("li").forEach((li) => {
-      li.classList.remove("dawa-selected");
-    });
-    if (direction === 1 && !next && !previous) {
-      first.focus();
-    } else if (direction === -1 && !previous) {
-      this.inputElement.focus();
-    } else if (direction === 1 && next) {
-      next.focus();
-    } else if (direction === -1 && previous) {
-      previous.focus();
-    }
-    this.listElement.querySelector(":focus")?.classList.add("dawa-selected");
+    const positions = options.length + 1;
+    const from = this.activeIndex + 1;
+    this.setActive(((from + direction + positions) % positions) - 1);
   }
 
   selectProcessor(item) {
@@ -214,7 +328,7 @@ export class AdresseSearchUI {
       this.inputElement.value = item.titel;
       this.refreshList(item.titel);
     } else {
-      this.listElement.querySelector("ul")?.remove();
+      this.closeList();
       this.selectItem(item);
     }
   }

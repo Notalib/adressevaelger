@@ -100,8 +100,10 @@ async function selectWithKeyboard(page, name) {
     await page.keyboard.press("ArrowDown");
   }
   // Guard the assumption above: if arrow handling ever changes, fail here
-  // rather than silently selecting the wrong address further down.
-  await expect(option).toBeFocused();
+  // rather than silently selecting the wrong address further down. The
+  // combobox keeps DOM focus and marks the option it is on, so this asks the
+  // option whether it is the active one rather than whether it is focused.
+  await expect(option).toHaveAttribute("aria-selected", "true");
   await page.keyboard.press("Enter");
 }
 

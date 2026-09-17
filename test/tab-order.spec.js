@@ -153,11 +153,16 @@ for (const { label, input, list, next } of versions) {
       .getByRole("option", { name: `Vej ${RESULT_COUNT}`, exact: true })
       .waitFor();
 
-    // tabindex="-1" has to leave the options reachable by script, which is how
-    // both versions move through them.
+    // The combobox keeps DOM focus and marks the option it is on, so what
+    // moves is aria-activedescendant rather than document.activeElement.
     await page.keyboard.press("ArrowDown");
-    expect(await activeElement(page)).toBe("li Vej 1");
+    await expect(
+      page.getByRole("option", { name: "Vej 1", exact: true }),
+    ).toHaveAttribute("aria-selected", "true");
     await page.keyboard.press("ArrowDown");
-    expect(await activeElement(page)).toBe("li Vej 2");
+    await expect(
+      page.getByRole("option", { name: "Vej 2", exact: true }),
+    ).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator(input)).toBeFocused();
   });
 }
