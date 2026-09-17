@@ -396,17 +396,22 @@ export class AdresseSearchInput extends HTMLElement {
   }
 
   inputHandler(event) {
+    // What was typed before this keystroke is no longer what to search for, an
+    // emptied field included. Left running, the timer fires a moment from now
+    // and searches for whatever the field holds then — which, after a
+    // backspace, is nothing, and search() rejects on its own argument guard
+    // rather than asking the API anything.
+    clearTimeout(this.debounceTimer);
+    this.debounceTimer = undefined;
     if (event.target.value === "") {
       this.cancelSearch();
       this.listElement.hidePopover();
       return;
     }
-    if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-    }
-    this.debounceTimer = setTimeout(async () => {
-      await this.refreshList(event.target.value);
-    }, 300);
+    // Read now rather than when the timer fires: selectProcessor assigns to
+    // value directly, without an input event, so the two can differ.
+    const query = event.target.value;
+    this.debounceTimer = setTimeout(() => this.refreshList(query), 300);
   }
 
   inputKeyHandler(event) {
