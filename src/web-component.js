@@ -56,7 +56,10 @@ export class AdresseSearchInput extends HTMLElementBase {
   styleElement;
   api;
   token;
-  style = `
+  // Not `style`: a class field is an own property of the instance, and under
+  // that name it hid the CSSStyleDeclaration every element inherits, so any
+  // write to element.style on this one threw.
+  styleText = `
     #${this.elementId} {
       --highlight-color: lightblue;
       max-width: 30rem;
@@ -240,7 +243,7 @@ export class AdresseSearchInput extends HTMLElementBase {
       return;
     }
     this.styleElement = document.createElement("style");
-    this.styleElement.textContent = this.style;
+    this.styleElement.textContent = this.styleText;
     document.head.append(this.styleElement);
   }
 
