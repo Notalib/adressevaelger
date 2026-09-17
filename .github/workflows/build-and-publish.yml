@@ -3,8 +3,9 @@ name: Build and publish
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   pull_request:
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -63,43 +64,60 @@ jobs:
 
   publish:
     needs: [build, test]
-    # Only tags. The "is it on main" check happens below, since a tag ref
-    # carries no branch information on its own.
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Publishing is driven by a published GitHub release, not by pushing a tag,
+    # so that what went out is a thing with notes and an author rather than a
+    # ref that appeared. A release can be cut from any commit, so the "is it on
+    # main" check below still has to be made explicitly. On this event
+    # GITHUB_SHA is the tagged commit, which is what build, test and this job
+    # all check out.
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    env:
+      TAG_NAME: ${{ github.event.release.tag_name }}
+      PRERELEASE: ${{ github.event.release.prerelease }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Verify the tag is on main
+      - name: Verify the release is on main
         run: |
           git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
           if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
-            echo "::error::Tag ${GITHUB_REF_NAME} points at $GITHUB_SHA, which is not an ancestor of main. Not publishing."
+            echo "::error::Release ${TAG_NAME} points at $GITHUB_SHA, which is not an ancestor of main. Not publishing."
             exit 1
           fi
-          echo "Tag ${GITHUB_REF_NAME} is contained in main."
+          echo "Release ${TAG_NAME} is contained in main."
 
-      - name: Verify the tag matches the package version
+      - name: Verify the release tag matches the package version
         run: |
-          tag_version="${GITHUB_REF_NAME#v}"
+          # The `tags: ["v*"]` push filter used to enforce the prefix. A release
+          # can carry any tag, so it is checked here instead.
+          case "$TAG_NAME" in
+            v*) ;;
+            *)
+              echo "::error::Release tag ${TAG_NAME} does not start with 'v'. Name the tag v<version>, e.g. v5.0.1."
+              exit 1
+              ;;
+          esac
+          tag_version="${TAG_NAME#v}"
           # Semver build metadata is normalised away: npm reads 5.0.0+kb1 as
           # plain 5.0.0, so it cannot distinguish a fork release from upstream's.
           case "$tag_version" in
             *+*)
-              echo "::error::Tag ${GITHUB_REF_NAME} carries build metadata (+${tag_version#*+}), which npm discards — it resolves as ${tag_version%%+*}. Use a prerelease suffix instead, e.g. 5.0.1-kb.1, which sorts above 5.0.0."
+              echo "::error::Release tag ${TAG_NAME} carries build metadata (+${tag_version#*+}), which npm discards — it resolves as ${tag_version%%+*}. Use a prerelease suffix instead, e.g. 5.0.1-kb.1, which sorts above 5.0.0."
               exit 1
               ;;
           esac
           pkg_version="$(node -p "require('./package.json').version")"
           if [ "$tag_version" != "$pkg_version" ]; then
-            echo "::error::Tag ${GITHUB_REF_NAME} implies version ${tag_version}, but package.json says ${pkg_version}."
+            echo "::error::Release tag ${TAG_NAME} implies version ${tag_version}, but package.json says ${pkg_version}."
             exit 1
           fi
+          echo "PKG_VERSION=${pkg_version}" >> "$GITHUB_ENV"
           echo "Publishing version ${pkg_version}."
 
       - uses: actions/setup-node@v7
@@ -122,6 +140,20 @@ jobs:
           echo "Publishing as @${owner}/${base}"
 
       - name: Publish to GitHub Packages
-        run: npm publish
+        run: |
+          # npm refuses to publish a prerelease version without a dist-tag —
+          # "You must specify a tag using --tag when publishing a prerelease
+          # version" — which is exactly the 5.0.1-kb.1 shape the version check
+          # above recommends. Being explicit also keeps a prerelease off the
+          # `latest` tag that a plain `npm install` resolves to.
+          tag=latest
+          case "$PKG_VERSION" in
+            *-*) tag=next ;;
+          esac
+          if [ "$PRERELEASE" = "true" ]; then
+            tag=next
+          fi
+          echo "Publishing ${PKG_VERSION} under the ${tag} tag."
+          npm publish --tag "$tag"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
