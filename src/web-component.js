@@ -1,4 +1,5 @@
 import { AdresseSearchAPI } from "./api.js";
+import { texts } from "./texts.js";
 
 let instanceCount = 0;
 
@@ -46,8 +47,12 @@ export class AdresseSearchInput extends HTMLElementBase {
   activeIndex = -1;
   /** Cancels the search that is in flight, if there is one. */
   searchController;
+  /** Bumped whenever the failure on screen changes, to drop a stale write. */
+  errorToken = 0;
   inputElement;
   listElement;
+  statusElement;
+  errorElement;
   styleElement;
   api;
   token;
@@ -62,6 +67,28 @@ export class AdresseSearchInput extends HTMLElementBase {
       anchor-name: --input-${this.elementId};
       width: 100%;
       display: block;
+    }
+    #${this.elementId}-status {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      border: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    #${this.elementId}-error {
+      margin: 0.3em 0 0 0;
+      color: #b00020;
+      font-size: 0.875em;
+    }
+    /* The alert stays in the document rather than being hidden between
+       failures, so that a screen reader has a live region to notice changing.
+       Empty, it should take up nothing. */
+    #${this.elementId}-error:empty {
+      margin: 0;
     }
     #${this.elementId}-list {
       margin: 0;
@@ -118,6 +145,10 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.debounceTimer = undefined;
     this.styleElement?.remove();
     this.styleElement = undefined;
+    this.statusElement?.remove();
+    this.statusElement = undefined;
+    this.errorElement?.remove();
+    this.errorElement = undefined;
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -243,13 +274,31 @@ export class AdresseSearchInput extends HTMLElementBase {
       "focusout",
       this.focusOutHandler.bind(this),
     );
-    this.append(this.inputElement);
+    // Prepended, not appended: after connectedCallback the status, alert and
+    // list are already children, so appending would put the field below its own
+    // error line on the next attribute change.
+    this.prepend(this.inputElement);
   }
 
   renderList() {
     if (this.listElement) {
       this.listElement.remove();
     }
+    // A list appearing, emptying or failing is a change the user did not make
+    // and cannot see unless they are looking at it. Both regions are in the
+    // document from the start: a live region added and filled in one go is not
+    // announced. The count goes to a polite status; a failed search is
+    // assertive, and on screen as well, because it is the one the user has to
+    // act on.
+    this.statusElement?.remove();
+    this.statusElement = document.createElement("div");
+    this.statusElement.id = `${this.elementId}-status`;
+    this.statusElement.role = "status";
+    this.errorElement?.remove();
+    this.errorElement = document.createElement("p");
+    this.errorElement.id = `${this.elementId}-error`;
+    this.errorElement.role = "alert";
+    this.append(this.statusElement, this.errorElement);
     this.listElement = document.createElement("ul");
     this.listElement.id = `${this.elementId}-list`;
     this.listElement.popover = "auto";
@@ -283,13 +332,56 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.append(this.listElement);
   }
 
+  /** Say something through the polite live region. */
+  announce(message) {
+    if (this.statusElement) {
+      this.statusElement.textContent = message;
+    }
+  }
+
+  /** Put a failure on screen, and in front of a screen reader. */
+  showError(message) {
+    if (!this.errorElement) {
+      return;
+    }
+    // A failure and a result count at the same time would talk over each
+    // other, and the count is the stale one.
+    this.announce("");
+    // The alert stays in the document, empty, rather than being hidden and
+    // unhidden: a live region that appears and fills in one task is the case
+    // screen readers miss, VoiceOver most reliably. What is announced is the
+    // text changing, so a second identical failure has to be cleared first and
+    // written in the next task, or it passes in silence.
+    this.errorElement.textContent = "";
+    const token = ++this.errorToken;
+    setTimeout(() => {
+      if (token === this.errorToken && this.errorElement?.isConnected) {
+        this.errorElement.textContent = message;
+      }
+    });
+  }
+
+  clearError() {
+    if (!this.errorElement) {
+      return;
+    }
+    // Also cancels a failure that has not been written yet.
+    this.errorToken++;
+    this.errorElement.textContent = "";
+  }
+
   renderListItems(items) {
     this.listElement.hidePopover();
     this.listElement.innerHTML = "";
+    // A search that returns anything at all clears a failure the user was
+    // shown for the last one.
+    this.clearError();
     // A search with no hits used to open an empty popover.
     if (items.length === 0) {
+      this.announce(texts.noResults);
       return;
     }
+    this.announce(texts.results(items.length));
     items.forEach((item, index) => {
       this.listElement.append(this.createListItem(item, index));
     });
@@ -415,6 +507,8 @@ export class AdresseSearchInput extends HTMLElementBase {
     if (event.target.value === "") {
       this.cancelSearch();
       this.listElement.hidePopover();
+      this.clearError();
+      this.announce("");
       return;
     }
     // Read now rather than when the timer fires: selectProcessor assigns to
@@ -489,6 +583,14 @@ export class AdresseSearchInput extends HTMLElementBase {
 
   errorHandler(err) {
     console.error(err);
+    // The suggestions are for a query that is no longer what the field says,
+    // and the popover sits over the error line: leaving it open hides the
+    // message from a sighted user and offers a screen-reader user options that
+    // do not match what they typed.
+    this.listElement?.hidePopover();
+    // The user gets a sentence they can act on; the detail stays in the event
+    // and the console for whoever is debugging.
+    this.showError(texts.searchFailed);
     this.dispatchEvent(
       new CustomEvent("address:error", {
         bubbles: true,

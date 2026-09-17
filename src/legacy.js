@@ -1,4 +1,5 @@
 import { AdresseSearchAPI } from "./api.js";
+import { texts } from "./texts.js";
 
 // A picker is wired to an element the caller owns, and a plain class gets no
 // notification when that element is removed. One shared observer releases any
@@ -64,6 +65,8 @@ export class AdresseSearchUI {
   listId = nextListId();
   /** Index of the option the arrow keys are on, or -1 for the text itself. */
   activeIndex = -1;
+  /** Bumped whenever the failure on screen changes, to drop a stale write. */
+  errorToken = 0;
   /** Cancels the search that is in flight, if there is one. */
   searchController;
 
@@ -74,6 +77,19 @@ export class AdresseSearchUI {
     this.listElement = document.createElement("div");
     this.wrapperElement = this.inputElement.parentNode;
     this.wrapperElement.append(this.listElement);
+    // A list appearing, emptying or failing is a change the user did not make
+    // and cannot see unless they are looking at it. Both regions are in the
+    // document from the start: a live region added and filled in one go is not
+    // announced. The count goes to a polite status; a failed search is
+    // assertive, and on screen as well, because it is the one the user has to
+    // act on.
+    this.statusElement = document.createElement("div");
+    this.statusElement.className = "adressevaelger-status";
+    this.statusElement.role = "status";
+    this.errorElement = document.createElement("p");
+    this.errorElement.className = "adressevaelger-error";
+    this.errorElement.role = "alert";
+    this.wrapperElement.append(this.statusElement, this.errorElement);
     // The caller owns the input, so the combobox semantics have to be applied
     // to it from here. Written with setAttribute rather than the IDL
     // properties: element.ariaControls and element.ariaAutocomplete exist in no
@@ -130,6 +146,8 @@ export class AdresseSearchUI {
     // claiming to be expanded around an element that no longer exists.
     this.closeList();
     this.listElement.remove();
+    this.statusElement.remove();
+    this.errorElement.remove();
     stopWatching(this);
   }
 
@@ -144,6 +162,8 @@ export class AdresseSearchUI {
     if (event.target.value === "") {
       this.cancelSearch();
       this.closeList();
+      this.clearError();
+      this.announce("");
       return;
     }
     // Read now rather than when the timer fires: selectProcessor assigns to
@@ -198,12 +218,17 @@ export class AdresseSearchUI {
   }
 
   renderDOMList(parentElement, items) {
+    // A search that returns anything at all clears a failure the user was
+    // shown for the last one.
+    this.clearError();
     // A search with no hits used to append an empty list, which drew an empty
     // box and left the combobox pointing at a popup with nothing in it.
     if (items.length === 0) {
       this.closeList();
+      this.announce(texts.noResults);
       return;
     }
+    this.announce(texts.results(items.length));
     const ulEl = document.createElement("ul");
     ulEl.id = this.listId;
     ulEl.className = "adressevaelger-suggestions";
@@ -243,8 +268,46 @@ export class AdresseSearchUI {
     parentElement.append(liEl);
   }
 
+  /** Say something through the polite live region. */
+  announce(message) {
+    this.statusElement.textContent = message;
+  }
+
+  /** Put a failure on screen, and in front of a screen reader. */
+  showError(message) {
+    // A failure and a result count at the same time would talk over each
+    // other, and the count is the stale one.
+    this.announce("");
+    // The alert stays in the document, empty, rather than being hidden and
+    // unhidden: a live region that appears and fills in one task is the case
+    // screen readers miss, VoiceOver most reliably. What is announced is the
+    // text changing, so a second identical failure has to be cleared first and
+    // written in the next task, or it passes in silence.
+    this.errorElement.textContent = "";
+    const token = ++this.errorToken;
+    setTimeout(() => {
+      if (token === this.errorToken && this.errorElement.isConnected) {
+        this.errorElement.textContent = message;
+      }
+    });
+  }
+
+  clearError() {
+    // Also cancels a failure that has not been written yet.
+    this.errorToken++;
+    this.errorElement.textContent = "";
+  }
+
   errorHandler(err) {
     console.error(err);
+    // The suggestions are for a query that is no longer what the field says,
+    // and the list is positioned over the error line: leaving it open hides
+    // the message from a sighted user and offers a screen-reader user options
+    // that do not match what they typed.
+    this.closeList();
+    // The user gets a sentence they can act on; the detail stays in the event
+    // and the console for whoever is debugging.
+    this.showError(texts.searchFailed);
     this.inputElement.dispatchEvent(
       new CustomEvent("address:error", {
         bubbles: true,

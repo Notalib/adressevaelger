@@ -207,6 +207,13 @@ ARIA combobox: it sets `role`, `aria-autocomplete`, `aria-controls` and
 `aria-expanded`, and points `aria-activedescendant` at the suggestion the arrow
 keys are on.
 
+Alongside the input it adds two regions of its own: a visually hidden
+`role="status"` that announces how many suggestions appeared, or that there
+were none, and a `role="alert"` line below the field that shows when a search
+fails. Both are styled by `adressevaelger.css` — `.adressevaelger-status` and
+`.adressevaelger-error` — so restyle the error line there if it should look
+like the rest of your form. The wording lives in `src/texts.js`.
+
 It also sets `autocomplete="off"`, as dawa-autocomplete2 did. Without it the
 browser opens its own history dropdown over the suggestion list and takes the
 keys meant for it — in Firefox, an input that has been submitted in a form
