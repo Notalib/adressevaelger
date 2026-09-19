@@ -1,0 +1,46 @@
+/* What the web component needs on top of shared.css, for every instance
+ * alike. It is injected once per document, from the bundle: the component
+ * needs no stylesheet from the page.
+ *
+ * Every rule here used to be written per instance, keyed on that instance's
+ * generated id, so a page with ten components carried ten copies of it. The
+ * only thing that genuinely differs between instances is the anchor name tying
+ * a list to its own field, and that is set on the elements themselves.
+ *
+ * The classes are the component's own. The legacy picker's elements carry the
+ * shared adr-* classes but not these, so nothing here reaches it.
+ */
+
+/* The element itself, found through its list rather than by id: the id is the
+   author's when they gave one. */
+:has(> .adr-wc-list) {
+  --highlight-color: lightblue;
+  max-width: 30rem;
+  width: 100%;
+  display: block;
+}
+
+.adr-wc-input {
+  width: 100%;
+  display: block;
+}
+
+/* Anchored to its own field, which is what anchor-name and position-anchor
+   carry, set on the two elements. left/top follow whichever field this list
+   belongs to; flip-block puts it above when there is no room below. */
+.adr-wc-list {
+  margin: 0;
+  inset: auto;
+  position: fixed;
+  left: anchor(left);
+  top: anchor(bottom);
+  right: auto;
+  position-try-fallbacks: flip-block;
+}
+
+/* The highlight is this version's own; the outline that carries the active
+   option, and the shape of a row, are shared with the legacy picker. */
+.adr-wc-list li:hover,
+.adr-wc-list li.dawa-selected {
+  background-color: var(--highlight-color);
+}
