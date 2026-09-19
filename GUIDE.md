@@ -25,7 +25,19 @@ Its `dist/` holds what you will typically need:
 
 adressevaelger.iife.js (for direct browser usage)
 adressevaelger.esm.js (for ES module usage)
+adressevaelger.cjs (for require)
 adressevaelger.css
+
+If you build with a bundler, the package name is enough — it resolves to the
+right bundle, and the stylesheet has a name of its own:
+
+```js
+import { adressevaelger, AdresseSearchInput } from "@notalib/adressevaelger";
+import "@notalib/adressevaelger/adressevaelger.css";
+```
+
+Only the bundles are published. The sources are not, since they import their
+stylesheets in a way that only the build understands.
 
 Building a checkout yourself gives you the same files:
 
