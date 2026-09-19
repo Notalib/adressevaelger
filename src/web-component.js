@@ -26,6 +26,7 @@ const HTMLElementBase =
 // Web component version of DAR search UI
 export class AdresseSearchInput extends HTMLElementBase {
   static observedAttributes = [
+    "label",
     "placeholder",
     "disabled",
     "adgangsadresser-only",
@@ -38,6 +39,8 @@ export class AdresseSearchInput extends HTMLElementBase {
   elementId = nextElementId();
   disabled = false;
   placeholder = defaultPlaceholder;
+  /** Text of the visible label, or null for none. */
+  labelText = null;
   searchType = "adresser";
   options = {
     kommuneKode: null,
@@ -52,6 +55,7 @@ export class AdresseSearchInput extends HTMLElementBase {
   /** Bumped whenever the failure on screen changes, to drop a stale write. */
   errorToken = 0;
   inputElement;
+  labelElement;
   listElement;
   statusElement;
   errorElement;
@@ -175,6 +179,9 @@ export class AdresseSearchInput extends HTMLElementBase {
       case "adgangsadresser-only":
         this.searchType = newValue !== null ? "husnumre" : "adresser";
         break;
+      case "label":
+        this.labelText = newValue;
+        break;
       case "placeholder":
         this.placeholder = newValue ?? defaultPlaceholder;
         break;
@@ -275,6 +282,28 @@ export class AdresseSearchInput extends HTMLElementBase {
     }
     this.inputElement.placeholder = this.placeholder;
     this.inputElement.disabled = this.disabled;
+    this.renderLabel();
+  }
+
+  // The placeholder was all that named the field, and a placeholder is not a
+  // label: it goes as soon as the user types, and some screen readers read it
+  // only as a hint. The field's id is generated, so a page cannot point a
+  // <label for> at it; the label attribute has the component do it instead.
+  renderLabel() {
+    if (this.labelText === null) {
+      this.labelElement?.remove();
+      this.labelElement = undefined;
+      return;
+    }
+    if (!this.labelElement) {
+      this.labelElement = document.createElement("label");
+      this.labelElement.id = `${this.elementId}-label`;
+      this.labelElement.htmlFor = `${this.elementId}-input`;
+    }
+    this.labelElement.textContent = this.labelText;
+    if (this.labelElement.nextElementSibling !== this.inputElement) {
+      this.inputElement.before(this.labelElement);
+    }
   }
 
   createInput() {
