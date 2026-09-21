@@ -105,6 +105,8 @@ export class AdresseSearchInput extends HTMLElementBase {
     }
     #${this.elementId}-list {
       margin: 0;
+      /* A <ul> keeps its 40px marker indent even once the bullets are gone. */
+      padding: 0;
       inset: auto;
       position-anchor: --input-${this.elementId};
       position: fixed;
@@ -117,7 +119,16 @@ export class AdresseSearchInput extends HTMLElementBase {
       overflow: auto;
 
       li {
+        list-style: none;
         cursor: pointer;
+        /* A bare line of text is 18px at the default font size, under the
+           24px WCAG 2.5.8 asks of a target, and the options are stacked with
+           no spacing between them, so the spacing exception does not apply.
+           The padding matches the legacy rows; min-height keeps the floor
+           when the page's font is small enough for 0.4em not to reach it. */
+        padding: 0.4em 0.6em;
+        min-height: 24px;
+        box-sizing: border-box;
       }
       li:hover {
         background-color: var(--highlight-color);
