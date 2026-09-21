@@ -196,6 +196,15 @@ test("web component: document.head does not grow across open/close cycles", asyn
 
   const styles = await page.evaluate((cycles) => {
     const count = () => document.head.querySelectorAll("style").length;
+
+    // One component first, and gone again: the shared stylesheet is put in the
+    // page the first time any component is connected, and stays. It belongs to
+    // the document rather than to an instance, so it is not what this counts.
+    const warmUp = document.createElement("adresse-search-input");
+    warmUp.setAttribute("token", "test-token");
+    document.body.append(warmUp);
+    warmUp.remove();
+
     const before = count();
 
     for (let i = 0; i < cycles; i++) {
@@ -296,8 +305,10 @@ async function captureSearchURL(page, query) {
   await page.locator("#picker").press("End");
   await page.waitForTimeout(900);
 
-  expect(requests, `expected a search request for ${JSON.stringify(query)}`)
-    .not.toHaveLength(0);
+  expect(
+    requests,
+    `expected a search request for ${JSON.stringify(query)}`,
+  ).not.toHaveLength(0);
   return new URL(requests[0]);
 }
 

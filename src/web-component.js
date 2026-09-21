@@ -1,5 +1,13 @@
 import { AdresseSearchAPI } from "./api.js";
 import { texts } from "./texts.js";
+// The rules this version has in common with the legacy one, as text. The same
+// file is imported by style.css, so dist/adressevaelger.css carries them for
+// the legacy picker and the component brings its own copy along.
+import sharedStyles from "./shared.css";
+
+// One copy per document, however many components there are, and whatever they
+// are named. The id also covers a second copy of the bundle on the page.
+const sharedStyleId = "adressevaelger-shared-styles";
 
 let instanceCount = 0;
 
@@ -81,32 +89,8 @@ export class AdresseSearchInput extends HTMLElementBase {
       width: 100%;
       display: block;
     }
-    #${this.elementId}-status {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      margin: -1px;
-      padding: 0;
-      border: 0;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: nowrap;
-    }
-    #${this.elementId}-error {
-      margin: 0.3em 0 0 0;
-      color: #b00020;
-      font-size: 0.875em;
-    }
-    /* The alert stays in the document rather than being hidden between
-       failures, so that a screen reader has a live region to notice changing.
-       Empty, it should take up nothing. */
-    #${this.elementId}-error:empty {
-      margin: 0;
-    }
     #${this.elementId}-list {
       margin: 0;
-      /* A <ul> keeps its 40px marker indent even once the bullets are gone. */
-      padding: 0;
       inset: auto;
       position-anchor: --input-${this.elementId};
       position: fixed;
@@ -115,40 +99,12 @@ export class AdresseSearchInput extends HTMLElementBase {
       right: auto;
 
       position-try-fallbacks: flip-block;
-      max-height: 50vh;
-      overflow: auto;
 
-      li {
-        list-style: none;
-        cursor: pointer;
-        /* A bare line of text is 18px at the default font size, under the
-           24px WCAG 2.5.8 asks of a target, and the options are stacked with
-           no spacing between them, so the spacing exception does not apply.
-           The padding matches the legacy rows; min-height keeps the floor
-           when the page's font is small enough for 0.4em not to reach it. */
-        padding: 0.4em 0.6em;
-        min-height: 24px;
-        box-sizing: border-box;
-      }
-      li:hover {
-        background-color: var(--highlight-color);
-      }
-      /* The active option used to be the focused element, so the browser drew
-         its own focus ring on it. With focus kept in the text field nothing
-         did, and this version styled nothing for the active option at all:
-         arrowing through the list changed nothing on screen. The outline is
-         inset so that the list's overflow cannot clip it. */
+      /* The highlight is this version's own; its outline, the height cap and
+         what an option is shaped like are in shared.css. */
+      li:hover,
       li.dawa-selected {
         background-color: var(--highlight-color);
-        outline: 2px solid #005a9c;
-        outline-offset: -2px;
-      }
-    }
-    /* Forced colours drop the background, which leaves the outline to carry
-       the indicator; Highlight is what the user has chosen for exactly this. */
-    @media (forced-colors: active) {
-      #${this.elementId}-list li.dawa-selected {
-        outline-color: Highlight;
       }
     }
   `;
@@ -275,12 +231,28 @@ export class AdresseSearchInput extends HTMLElementBase {
   }
 
   attachStyle() {
+    this.attachSharedStyle();
     if (this.styleElement) {
       return;
     }
     this.styleElement = document.createElement("style");
     this.styleElement.textContent = this.styleText;
     document.head.append(this.styleElement);
+  }
+
+  /**
+   * The shared rules, once per document. This one is not removed when the last
+   * component goes: it belongs to the page, not to an instance, and the next
+   * component to be connected would only put it back.
+   */
+  attachSharedStyle() {
+    if (document.getElementById(sharedStyleId)) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = sharedStyleId;
+    style.textContent = sharedStyles;
+    document.head.append(style);
   }
 
   renderInput() {
@@ -363,14 +335,17 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.statusElement?.remove();
     this.statusElement = document.createElement("div");
     this.statusElement.id = `${this.elementId}-status`;
+    this.statusElement.className = "adr-status";
     this.statusElement.role = "status";
     this.errorElement?.remove();
     this.errorElement = document.createElement("p");
     this.errorElement.id = `${this.elementId}-error`;
+    this.errorElement.className = "adr-error";
     this.errorElement.role = "alert";
     this.append(this.statusElement, this.errorElement);
     this.listElement = document.createElement("ul");
     this.listElement.id = `${this.elementId}-list`;
+    this.listElement.className = "adr-suggestions";
     this.listElement.popover = "auto";
     this.listElement.role = "listbox";
     this.listElement.ariaLabel = "Søgeresultater";
@@ -463,6 +438,7 @@ export class AdresseSearchInput extends HTMLElementBase {
   createListItem(item, index) {
     const liElement = document.createElement("li");
     liElement.id = `${this.elementId}-option-${index}`;
+    liElement.className = "adr-suggestion";
     // Suggestions are moved through with the arrow keys, not with Tab: a search
     // returns up to 100 of them, and at tabindex="0" every one is a tab stop
     // between the field and the next control.
