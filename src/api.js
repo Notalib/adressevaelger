@@ -138,12 +138,9 @@ export class AdresseSearchAPI {
     if (options.kommuneKode) {
       append("kommuneKode", options.kommuneKode);
     }
-    if (options.vejnavn) {
-      append("vejnavn", options.vejnavn);
-    }
-    if (options.postnummer) {
-      append("postnummer", options.postnummer);
-    }
+    // No vejnavn or postnummer: the service only reads them for a search
+    // without tekst, and every search here sends tekst, so they changed the
+    // request and never the results (measured on both endpoints).
     return queryStr;
   }
 }
