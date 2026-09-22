@@ -80,22 +80,36 @@ export function adressevaelger(element, options) {
 }
 
 export class AdresseSearchUI {
+  /** @private */
   searchType = "adresser";
+  /** @private */
   debounceTimer;
+  /** @private */
   options;
+  /** @private */
   wrapperElement;
+  /** @private */
   inputElement;
+  /** @private */
   listElement;
+  /** @private */
   api;
+  /** @private */
   abortController = new AbortController();
+  /** @private */
   wasConnected = false;
+  /** @private */
   listId = nextListId();
-  /** Index of the option the arrow keys are on, or -1 for the text itself. */
+  /** Index of the option the arrow keys are on, or -1 for the text itself. @private */
   activeIndex = -1;
-  /** Bumped whenever the failure on screen changes, to drop a stale write. */
+  /** Bumped whenever the failure on screen changes, to drop a stale write. @private */
   errorToken = 0;
-  /** Cancels the search that is in flight, if there is one. */
+  /** Cancels the search that is in flight, if there is one. @private */
   searchController;
+  /** The visually hidden live region the result count is announced in. @private */
+  statusElement;
+  /** The alert line a failed search is written to. @private */
+  errorElement;
 
   /**
    * @param {HTMLInputElement} element
@@ -194,6 +208,7 @@ export class AdresseSearchUI {
     stopWatching(this);
   }
 
+  /** @private */
   inputHandler(event) {
     // What was typed before this keystroke is no longer what to search for, an
     // emptied field included. Left running, the timer fires half a second from
@@ -219,19 +234,21 @@ export class AdresseSearchUI {
    * Abandon the search that is in flight, if there is one. Nothing it returns
    * will be rendered, and the request itself is cancelled rather than left to
    * occupy a connection until the gateway gives up on it.
+   * @private
    */
   cancelSearch() {
     this.searchController?.abort();
     this.searchController = undefined;
   }
 
-  /** Supersede any search in flight and take the token for the new one. */
+  /** Supersede any search in flight and take the token for the new one. @private */
   startSearch() {
     this.cancelSearch();
     this.searchController = new AbortController();
     return this.searchController.signal;
   }
 
+  /** @private */
   async refreshList(queryText) {
     const signal = this.startSearch();
     try {
@@ -260,6 +277,7 @@ export class AdresseSearchUI {
     }
   }
 
+  /** @private */
   renderDOMList(parentElement, items) {
     // A search that returns anything at all clears a failure the user was
     // shown for the last one.
@@ -294,6 +312,7 @@ export class AdresseSearchUI {
     this.inputElement.setAttribute("aria-expanded", "true");
   }
 
+  /** @private */
   renderDOMListItem(parentElement, item, index) {
     const liEl = document.createElement("li");
     liEl.id = `${this.listId}-option-${index}`;
@@ -312,12 +331,12 @@ export class AdresseSearchUI {
     parentElement.append(liEl);
   }
 
-  /** Say something through the polite live region. */
+  /** Say something through the polite live region. @private */
   announce(message) {
     this.statusElement.textContent = message;
   }
 
-  /** Put a failure on screen, and in front of a screen reader. */
+  /** Put a failure on screen, and in front of a screen reader. @private */
   showError(message) {
     // A failure and a result count at the same time would talk over each
     // other, and the count is the stale one.
@@ -336,12 +355,14 @@ export class AdresseSearchUI {
     });
   }
 
+  /** @private */
   clearError() {
     // Also cancels a failure that has not been written yet.
     this.errorToken++;
     this.errorElement.textContent = "";
   }
 
+  /** @private */
   errorHandler(err) {
     console.error(err);
     // The suggestions are for a query that is no longer what the field says,
@@ -379,6 +400,7 @@ export class AdresseSearchUI {
    * list open, or with an option active. Enter with nothing active still
    * submits the form, and Escape with no list still reaches the field and any
    * dialog around it.
+   * @private
    */
   listKeyHandler(event) {
     const isOpen = this.optionElements().length > 0;
@@ -412,6 +434,7 @@ export class AdresseSearchUI {
    * Close when focus leaves the component. Options cannot take focus — the
    * list cancels mousedown and none of it is tabbable — so this fires when the
    * user tabs or clicks away, and not while they are working in the list.
+   * @private
    */
   focusOutHandler(event) {
     if (!this.wrapperElement.contains(event.relatedTarget)) {
@@ -419,13 +442,14 @@ export class AdresseSearchUI {
     }
   }
 
+  /** @private */
   outsideClickHandler(event) {
     if (!this.wrapperElement.contains(event.target)) {
       this.closeList();
     }
   }
 
-  /** The rendered options, in order; empty when the list is closed. */
+  /** The rendered options, in order; empty when the list is closed. @private */
   optionElements() {
     return [...this.listElement.querySelectorAll("li")];
   }
@@ -434,6 +458,7 @@ export class AdresseSearchUI {
    * Point the combobox at one option, or at the text itself with -1. Nothing
    * is focused: the input keeps DOM focus throughout, and aria-activedescendant
    * is what tells a screen reader where the arrow keys have got to.
+   * @private
    */
   setActive(index) {
     const options = this.optionElements();
@@ -458,7 +483,7 @@ export class AdresseSearchUI {
     }
   }
 
-  /** Drop the suggestions and report the combobox as collapsed. */
+  /** Drop the suggestions and report the combobox as collapsed. @private */
   closeList() {
     this.listElement.querySelector("ul")?.remove();
     this.activeIndex = -1;
@@ -470,6 +495,7 @@ export class AdresseSearchUI {
    * Move the active option one step. What was typed is part of the ring, at
    * -1: arrowing past either end of the list comes back to it, which is where
    * arrowing up off the first option used to return DOM focus.
+   * @private
    */
   moveActive(direction) {
     const options = this.optionElements();
@@ -481,6 +507,7 @@ export class AdresseSearchUI {
     this.setActive(((from + direction + positions) % positions) - 1);
   }
 
+  /** @private */
   selectProcessor(item) {
     // Whatever is in flight was for what the user typed, not for what they
     // have just picked: without this, its results reopen the list over the
@@ -499,6 +526,7 @@ export class AdresseSearchUI {
     }
   }
 
+  /** @private */
   async selectItem(item) {
     try {
       const data = await this.api.get(this.searchType, item.id);

@@ -71,32 +71,45 @@ export class AdresseSearchInput extends HTMLElementBase {
     "token",
     "api-url",
   ];
+  /** @private */
   elementId = nextElementId();
-  /** Ties this component's list to this component's field, and no other. */
+  /** Ties this component's list to this component's field, and no other. @private */
   anchorName = `--input-${this.elementId}`;
+  /** @private */
   disabled = false;
+  /** @private */
   placeholder = defaultPlaceholder;
-  /** Text of the visible label, or null for none. */
+  /** Text of the visible label, or null for none. @private */
   labelText = null;
+  /** @private */
   searchType = "adresser";
+  /** @private */
   options = {
     kommuneKode: null,
     maksimum: null,
     medtagForeloebige: null,
   };
+  /** @private */
   debounceTimer;
-  /** Index of the option the arrow keys are on, or -1 for the text itself. */
+  /** Index of the option the arrow keys are on, or -1 for the text itself. @private */
   activeIndex = -1;
-  /** Cancels the search that is in flight, if there is one. */
+  /** Cancels the search that is in flight, if there is one. @private */
   searchController;
-  /** Bumped whenever the failure on screen changes, to drop a stale write. */
+  /** Bumped whenever the failure on screen changes, to drop a stale write. @private */
   errorToken = 0;
+  /** @private */
   inputElement;
+  /** @private */
   labelElement;
+  /** @private */
   listElement;
+  /** @private */
   statusElement;
+  /** @private */
   errorElement;
+  /** @private */
   api;
+  /** @private */
   token;
   constructor() {
     super();
@@ -166,6 +179,7 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.renderInput();
   }
 
+  /** @private */
   setAPI() {
     if (!this.token) {
       return;
@@ -176,11 +190,13 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.api = new AdresseSearchAPI(opt);
   }
 
+  /** @private */
   async selectHandler(event) {
     const item = JSON.parse(event.target.dataset.item);
     this.selectProcessor(item);
   }
 
+  /** @private */
   async selectProcessor(item) {
     // Whatever is in flight was for what the user typed, not for what they
     // have just picked: without this, its results reopen the list over the
@@ -199,6 +215,7 @@ export class AdresseSearchInput extends HTMLElementBase {
     }
   }
 
+  /** @private */
   async selectItem(item) {
     try {
       const data = await this.api.get(this.searchType, item.id);
@@ -221,6 +238,7 @@ export class AdresseSearchInput extends HTMLElementBase {
    * The stylesheets, once per document. They are not removed when the last
    * component goes: they belong to the page rather than to an instance, and
    * the next component to be connected would only put them back.
+   * @private
    */
   attachStyle() {
     for (const [id, text] of styleSheets) {
@@ -234,6 +252,7 @@ export class AdresseSearchInput extends HTMLElementBase {
     }
   }
 
+  /** @private */
   renderInput() {
     // The field is made once and updated in place after that. Replacing it on
     // every attribute change emptied what the user had typed, took their
@@ -251,6 +270,7 @@ export class AdresseSearchInput extends HTMLElementBase {
   // label: it goes as soon as the user types, and some screen readers read it
   // only as a hint. The field's id is generated, so a page cannot point a
   // <label for> at it; the label attribute has the component do it instead.
+  /** @private */
   renderLabel() {
     if (this.labelText === null) {
       this.labelElement?.remove();
@@ -268,6 +288,7 @@ export class AdresseSearchInput extends HTMLElementBase {
     }
   }
 
+  /** @private */
   createInput() {
     this.inputElement = document.createElement("input");
     this.inputElement.id = `${this.elementId}-input`;
@@ -305,6 +326,7 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.prepend(this.inputElement);
   }
 
+  /** @private */
   renderList() {
     if (this.listElement) {
       this.listElement.remove();
@@ -365,6 +387,7 @@ export class AdresseSearchInput extends HTMLElementBase {
    * Open the list. With the Popover API it goes into the top layer, which no
    * ancestor can clip and nothing on the page can cover. Without it, the list
    * is shown where it sits and placed by hand.
+   * @private
    */
   openList() {
     if (usesPopover) {
@@ -375,7 +398,7 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.placeList();
   }
 
-  /** Close it, and put the component back the way a closed list leaves it. */
+  /** Close it, and put the component back the way a closed list leaves it. @private */
   closeList() {
     if (!this.listElement) {
       return;
@@ -400,6 +423,7 @@ export class AdresseSearchInput extends HTMLElementBase {
    * it, so the options go: "the list holds options only while it is open"
    * holds for this version too, as it always has for the legacy one, and every
    * check can ask the options rather than track a flag.
+   * @private
    */
   afterClose() {
     this.setActive(-1);
@@ -412,6 +436,7 @@ export class AdresseSearchInput extends HTMLElementBase {
    * off the bottom of the window and there is room above. This is what
    * position-try-fallbacks does for the popover; without anchor positioning
    * there is nothing that can do it in CSS alone.
+   * @private
    */
   placeList() {
     const field = this.inputElement.getBoundingClientRect();
@@ -423,14 +448,14 @@ export class AdresseSearchInput extends HTMLElementBase {
     );
   }
 
-  /** Say something through the polite live region. */
+  /** Say something through the polite live region. @private */
   announce(message) {
     if (this.statusElement) {
       this.statusElement.textContent = message;
     }
   }
 
-  /** Put a failure on screen, and in front of a screen reader. */
+  /** Put a failure on screen, and in front of a screen reader. @private */
   showError(message) {
     if (!this.errorElement) {
       return;
@@ -452,6 +477,7 @@ export class AdresseSearchInput extends HTMLElementBase {
     });
   }
 
+  /** @private */
   clearError() {
     if (!this.errorElement) {
       return;
@@ -461,6 +487,7 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.errorElement.textContent = "";
   }
 
+  /** @private */
   renderListItems(items) {
     this.closeList();
     this.listElement.innerHTML = "";
@@ -481,6 +508,7 @@ export class AdresseSearchInput extends HTMLElementBase {
     this.inputElement.setAttribute("aria-expanded", "true");
   }
 
+  /** @private */
   createListItem(item, index) {
     const liElement = document.createElement("li");
     liElement.id = `${this.elementId}-option-${index}`;
@@ -496,7 +524,7 @@ export class AdresseSearchInput extends HTMLElementBase {
     return liElement;
   }
 
-  /** The rendered options, in order; empty when nothing has been searched. */
+  /** The rendered options, in order; empty when nothing has been searched. @private */
   optionElements() {
     return [...this.listElement.querySelectorAll("li")];
   }
@@ -505,6 +533,7 @@ export class AdresseSearchInput extends HTMLElementBase {
    * Point the combobox at one option, or at the text itself with -1. Nothing
    * is focused: the input keeps DOM focus throughout, and aria-activedescendant
    * is what tells a screen reader where the arrow keys have got to.
+   * @private
    */
   setActive(index) {
     const options = this.optionElements();
@@ -535,6 +564,7 @@ export class AdresseSearchInput extends HTMLElementBase {
   /**
    * Move the active option one step. What was typed is part of the ring, at
    * -1: arrowing past either end of the list comes back to it.
+   * @private
    */
   moveActive(direction) {
     const options = this.optionElements();
@@ -550,19 +580,21 @@ export class AdresseSearchInput extends HTMLElementBase {
    * Abandon the search that is in flight, if there is one. Nothing it returns
    * will be rendered, and the request itself is cancelled rather than left to
    * occupy a connection until the gateway gives up on it.
+   * @private
    */
   cancelSearch() {
     this.searchController?.abort();
     this.searchController = undefined;
   }
 
-  /** Supersede any search in flight and take the token for the new one. */
+  /** Supersede any search in flight and take the token for the new one. @private */
   startSearch() {
     this.cancelSearch();
     this.searchController = new AbortController();
     return this.searchController.signal;
   }
 
+  /** @private */
   async refreshList(value) {
     const signal = this.startSearch();
     try {
@@ -590,6 +622,7 @@ export class AdresseSearchInput extends HTMLElementBase {
     }
   }
 
+  /** @private */
   inputHandler(event) {
     // What was typed before this keystroke is no longer what to search for, an
     // emptied field included. Left running, the timer fires a moment from now
@@ -626,6 +659,7 @@ export class AdresseSearchInput extends HTMLElementBase {
    * Whether the list is open is read from the options themselves, which the
    * popover empties as it closes, rather than from a flag that has to be kept
    * in step with it.
+   * @private
    */
   inputKeyHandler(event) {
     const isOpen = this.optionElements().length > 0;
@@ -668,6 +702,7 @@ export class AdresseSearchInput extends HTMLElementBase {
    * Close when focus leaves the component. Options cannot take focus — the
    * list cancels mousedown and none of it is tabbable — so this fires when the
    * user tabs or clicks away, and not while they are working in the list.
+   * @private
    */
   focusOutHandler(event) {
     if (!this.contains(event.relatedTarget)) {
@@ -675,6 +710,7 @@ export class AdresseSearchInput extends HTMLElementBase {
     }
   }
 
+  /** @private */
   errorHandler(err) {
     console.error(err);
     // The suggestions are for a query that is no longer what the field says,
