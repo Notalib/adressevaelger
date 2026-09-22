@@ -75,6 +75,24 @@ To migrate from dawa-autocomplete2, [check the migration guide.](./MIGRATION-GUI
 
 ## Distribution
 
-Adressevaelger is distributed only via this GitHub repository.
+This fork publishes Adressevaelger to GitHub Packages. The bundles are built on
+release rather than kept in the repository, so there is nothing to copy out of
+the tree.
 
-It is not available via CDN or npm, and must be included in projects by downloading or copying the required files from the repository.
+```sh
+echo "@notalib:registry=https://npm.pkg.github.com" >> .npmrc
+npm install @notalib/adressevaelger
+```
+
+```js
+import { adressevaelger } from "@notalib/adressevaelger";
+import "@notalib/adressevaelger/adressevaelger.css";
+```
+
+For a page with no build step, use the IIFE bundle and the stylesheet from the
+installed package — `node_modules/@notalib/adressevaelger/dist/` — or build a
+checkout with `npm ci && npm run build`, which writes the same files to `dist/`.
+
+There is no CDN. Upstream, [SDFIdk/adressevaelger](https://github.com/SDFIdk/adressevaelger),
+keeps its built files in the repository and is copied from directly; this fork
+does not, which is why the instructions here differ from theirs.
