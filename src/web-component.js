@@ -52,8 +52,11 @@ const usesPopover =
 // Fall back to a plain class outside browser-like environments (SSR, Node,
 // Jest/Vitest without jsdom) so importing this module doesn't throw just
 // because HTMLElement isn't defined there.
-const HTMLElementBase =
-  typeof HTMLElement !== "undefined" ? HTMLElement : class {};
+// Cast so that the class is typed as the HTMLElement it is in a browser; the
+// stand-in exists only where there is no DOM, and nothing calls it there.
+const HTMLElementBase = /** @type {typeof HTMLElement} */ (
+  typeof HTMLElement !== "undefined" ? HTMLElement : class {}
+);
 
 // Web component version of DAR search UI
 export class AdresseSearchInput extends HTMLElementBase {
