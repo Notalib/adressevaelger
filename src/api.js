@@ -190,6 +190,7 @@ export class AdresseSearchAPI {
     return data;
   }
 
+  /** @private */
   formatParams(options) {
     let queryStr = "";
     const append = (name, value) => {

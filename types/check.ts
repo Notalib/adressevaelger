@@ -50,6 +50,15 @@ adressevaelger(document.createElement("div"), {
   select: () => {},
 });
 
+// The internals are not the API: they are marked private, so a consumer
+// cannot reach them and a later change cannot quietly expose them again.
+// @ts-expect-error
+picker.renderDOMList;
+// @ts-expect-error
+picker.inputElement;
+// @ts-expect-error
+picker.closeList();
+
 const api = new AdresseSearchAPI({ token: "a-token" });
 
 async function search() {
