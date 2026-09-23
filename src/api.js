@@ -38,12 +38,24 @@ async function errorDetail(response) {
 }
 
 /**
+ * An error carrying what the service said, beside the message.
+ *
+ * @typedef {Error & {status?: number, detail?: string}} SearchError
+ */
+
+/**
  * The request itself failed. Carries the status and the service's own words
  * separately from the message, so that a caller can tell a 504 worth retrying
  * from a 400 about their own configuration without parsing English.
+ *
+ * @param {number} status
+ * @param {string} detail
+ * @returns {SearchError}
  */
 function requestFailed(status, detail) {
-  const error = new Error(detail ? `HTTP ${status}: ${detail}` : `HTTP ${status}`);
+  const error = /** @type {SearchError} */ (
+    new Error(detail ? `HTTP ${status}: ${detail}` : `HTTP ${status}`)
+  );
   error.status = status;
   error.detail = detail;
   return error;
@@ -54,20 +66,64 @@ function requestFailed(status, detail) {
  * which comes back as 200 with a "fejl" envelope. No status is set: there is
  * no failing status to report, and saying 200 on a failed search would make
  * the field useless to branch on.
+ *
+ * @param {string} detail
+ * @returns {SearchError}
  */
 function serviceRefused(detail) {
-  const error = new Error(detail || "the search service refused the request");
+  const error = /** @type {SearchError} */ (
+    new Error(detail || "the search service refused the request")
+  );
   error.detail = detail;
   return error;
 }
 
 /**
- * options.endpoint options.token
+ * Which of the service's two search endpoints to ask. Follows
+ * `adgangsadresserOnly`.
+ *
+ * @typedef {"adresser" | "husnumre"} SearchEndpoint
+ */
+
+/**
+ * One row of the suggestion list. `type` decides what picking it does: a
+ * vejnavn or navngivenvejpostnummer narrows the search, an adresse or a
+ * husnummer ends it.
+ *
+ * @typedef {Object} Suggestion
+ * @property {"vejnavn" | "navngivenvejpostnummer" | "husnummer" | "adresse"} type
+ * @property {string} titel what the option shows
+ * @property {string} [id] present on the rows that can be looked up
+ */
+
+/**
+ * The record behind a suggestion, as the service returns it. Its shape is the
+ * API's rather than this package's, so it is left open.
+ *
+ * @typedef {Record<string, unknown>} Address
+ */
+
+/**
+ * Search parameters. The same names the picker takes, and what
+ * `formatParams` turns into a query string.
+ *
+ * @typedef {Object} SearchParameters
+ * @property {string} [kommuneKode] restrict to one municipality
+ * @property {number} [maksimum] maximum hits; the service returns 100 when
+ *   unset and rejects anything over 200
+ * @property {boolean} [medtagForeloebige] include foreløbige addresses
+ */
+
+/**
+ * The search service, without any user interface.
  */
 export class AdresseSearchAPI {
   apiUrl = "https://adressevaelger.dk";
   token = "";
 
+  /**
+   * @param {{token: string, apiUrl?: string}} options a token is the minimum
+   */
   constructor(options) {
     if (!options || !options.token) {
       throw new Error(
@@ -82,12 +138,15 @@ export class AdresseSearchAPI {
   }
 
   /**
-   * @param {string} endpoint
+   * Suggestions for what has been typed.
+   *
+   * @param {SearchEndpoint} endpoint
    * @param {string} query
-   * @param {object} [options] search parameters, as documented in GUIDE.md
+   * @param {SearchParameters} [options] search parameters, as documented in GUIDE.md
    * @param {{signal?: AbortSignal}} [request] pass a signal to cancel a search
    *   that has been superseded; the returned promise then rejects with the
    *   signal's reason, as fetch does.
+   * @returns {Promise<Suggestion[]>}
    */
   async search(endpoint, query, options = {}, { signal } = {}) {
     if (!endpoint || !query) {
@@ -107,6 +166,13 @@ export class AdresseSearchAPI {
     return data.fund;
   }
 
+  /**
+   * The full record behind a suggestion.
+   *
+   * @param {SearchEndpoint} endpoint
+   * @param {string} id
+   * @returns {Promise<Address>}
+   */
   async get(endpoint, id) {
     if (!endpoint || !id) {
       throw new Error("get() requires both endpoint and id parameters.");

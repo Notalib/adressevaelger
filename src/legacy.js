@@ -48,6 +48,33 @@ function nextListId() {
   return id;
 }
 
+/**
+ * What `adressevaelger()` accepts. The search parameters are the same ones
+ * AdresseSearchAPI takes.
+ *
+ * @typedef {Object} AdressevaelgerOptions
+ * @property {string} token access token; required
+ * @property {(selected: import("./api.js").Address) => void} select called
+ *   with the chosen address; required
+ * @property {boolean} [adgangsadresserOnly] restrict searches to husnumre
+ * @property {string} [kommuneKode] restrict to one municipality
+ * @property {number} [maksimum] maximum hits; the service returns 100 when
+ *   unset and rejects anything over 200
+ * @property {boolean} [medtagForeloebige] include foreløbige addresses
+ * @property {string} [apiUrl] a different API origin
+ */
+
+/**
+ * Turn an input into an address picker.
+ *
+ * The events are dispatched from that same input and bubble: `address:select`
+ * carries the chosen address, `address:error` carries `{message, status?,
+ * detail?}`, where `status` is present when the request itself failed.
+ *
+ * @param {HTMLInputElement} element the field the user types in
+ * @param {AdressevaelgerOptions} options
+ * @returns {AdresseSearchUI} the picker, for `setToken()` and `destroy()`
+ */
 export function adressevaelger(element, options) {
   return new AdresseSearchUI(element, options);
 }
@@ -70,6 +97,10 @@ export class AdresseSearchUI {
   /** Cancels the search that is in flight, if there is one. */
   searchController;
 
+  /**
+   * @param {HTMLInputElement} element
+   * @param {AdressevaelgerOptions} options
+   */
   constructor(element, options) {
     this.options = options;
     this.searchType = options.adgangsadresserOnly ? "husnumre" : "adresser";
@@ -134,6 +165,8 @@ export class AdresseSearchUI {
    * picker was set up with has expired. The web component does the same when
    * its token attribute changes. Throws on an empty token, as setup does, and
    * keeps the token it had.
+   *
+   * @param {string} token
    */
   setToken(token) {
     const opt = this.options.apiUrl
@@ -272,7 +305,8 @@ export class AdresseSearchUI {
     liEl.tabIndex = -1;
     liEl.dataset.item = JSON.stringify(item);
     liEl.addEventListener("click", (event) => {
-      this.selectProcessor(JSON.parse(event.target.dataset.item));
+      const option = /** @type {HTMLElement} */ (event.target);
+      this.selectProcessor(JSON.parse(option.dataset.item));
     });
     liEl.innerText = item.titel;
     parentElement.append(liEl);

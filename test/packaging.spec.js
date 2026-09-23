@@ -138,7 +138,9 @@ test("the published files are the bundles, not the sources", () => {
 
   // The whole list, not a few names: a bundle renamed and left behind by an
   // older build would otherwise be published along with the rest, and the
-  // demo page carries a token of its own.
+  // demo page carries a token of its own. The declarations belong here too —
+  // exports.types points into dist/types, so a package without them is a
+  // package that lies about having types.
   expect(files.sort()).toEqual([
     "LICENSE",
     "README.md",
@@ -146,6 +148,11 @@ test("the published files are the bundles, not the sources", () => {
     "dist/adressevaelger.css",
     "dist/adressevaelger.esm.js",
     "dist/adressevaelger.iife.js",
+    "dist/types/index.d.ts",
+    "dist/types/src/api.d.ts",
+    "dist/types/src/legacy.d.ts",
+    "dist/types/src/texts.d.ts",
+    "dist/types/src/web-component.d.ts",
     "package.json",
   ]);
 });

@@ -1,0 +1,20 @@
+{
+  // Declarations are generated from the sources rather than written beside
+  // them, so that what the package promises and what it does cannot drift.
+  // The JSDoc on the public API is what gives them their shape: without it
+  // this emits `any` and tells a caller nothing.
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dist/types",
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "strict": false,
+    "skipLibCheck": true
+  },
+  "include": ["index.js", "src/**/*.js", "types/**/*.d.ts"]
+}

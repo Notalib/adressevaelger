@@ -28,7 +28,13 @@ jobs:
 
       - run: npm ci
 
+      # Also emits dist/types: the declarations are generated from the
+      # sources, so a JSDoc type that stops describing the code fails here.
       - run: npm run build
+
+      # And this compiles a consumer against them, so what the package
+      # promises cannot drift from what it exports.
+      - run: npm run test:types
 
       - uses: actions/upload-artifact@v7
         with:
